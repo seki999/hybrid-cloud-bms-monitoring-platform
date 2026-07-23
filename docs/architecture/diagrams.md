@@ -2,6 +2,8 @@
 
 以下 12 张 Mermaid 图与当前代码、容器、Kubernetes 和 IaC 目录一一对应；虚线表示只提供部署样例、默认关闭的云资源。
 
+需要深入了解跨云通信、NLB/LB、端口转换、五类 Pod、NetworkPolicy、故障隔离和逐层排查时，请继续阅读包含 20 个专题、19 张图的[云端通信与容器结构设计书](cloud-communication-and-container-design.md)。
+
 ## 1. 整体系统
 
 ```mermaid

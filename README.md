@@ -25,7 +25,7 @@
 
 ## 4. 系统全体架构
 
-设备经 UDP/TCP 抵达接收层，AWS Lambda 的主动检查经 HTTPS 抵达 API；统一处理链写数据库并驱动日文 SSR 页面。完整 12 图见 [架构图集](docs/architecture/diagrams.md)。
+设备经 UDP/TCP 抵达接收层，AWS Lambda 的主动检查经 HTTPS 抵达 API；统一处理链写数据库并驱动日文 SSR 页面。先看 [12 张架构概览图](docs/architecture/diagrams.md)，再通过包含 20 个专题、19 张图的[云端通信与容器结构设计书](docs/architecture/cloud-communication-and-container-design.md)深入理解跨云路由、NLB/LB、端口转换、五类 Pod、NetworkPolicy、扩容和故障排查。
 
 ```mermaid
 flowchart LR
@@ -355,4 +355,4 @@ Controller `OperationsController`；Service `OperationsViewService`；表 `monit
 
 ## 进一步阅读
 
-`docs/technologies` 下有 25 份独立说明，每份均包含技术定义、采用理由、项目位置、主要概念/配置、示例、命令和常见错误。实际执行记录、版本、通过/受阻边界见 [验证报告](docs/validation-report.md)。
+`docs/technologies` 下有 25 份独立说明，每份均包含技术定义、采用理由、项目位置、主要概念/配置、示例、命令和常见错误。跨云网络、容器和协议通信的图形化说明见[云端通信与容器结构设计书](docs/architecture/cloud-communication-and-container-design.md)。实际执行记录、版本、通过/受阻边界见 [验证报告](docs/validation-report.md)。
