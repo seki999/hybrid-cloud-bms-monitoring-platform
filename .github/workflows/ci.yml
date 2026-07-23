@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  java-and-manifests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Enable Unix launchers
+        run: chmod +x mvnw scripts/*.sh
+      - name: Verify Java modules and Testcontainers
+        run: ./mvnw --batch-mode clean verify
+      - name: Validate Docker Compose wiring
+        run: docker compose config --quiet
+      - name: Render Kubernetes manifests
+        run: kubectl kustomize infra/kubernetes/overlays/kind >/dev/null
+      - name: Build non-root application image
+        run: docker build -f infra/docker/bms-app.Dockerfile -t bms-app:ci .
+
+  opentofu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: 1.12.0
+      - name: Format check
+        run: tofu fmt -recursive -check infra/opentofu
+      - name: Credential-free local validation
+        run: |
+          tofu -chdir=infra/opentofu/environments/local init -backend=false
+          tofu -chdir=infra/opentofu/environments/local validate

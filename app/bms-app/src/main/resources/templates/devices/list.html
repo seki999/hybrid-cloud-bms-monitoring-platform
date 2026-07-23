@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main}, 'devices')}">
+<head><title>監視対象機器一覧 | BMS Monitoring</title></head>
+<body><main>
+  <div class="page-head"><div><p class="eyebrow">DEVICE INVENTORY</p><h1>監視対象機器一覧</h1><p class="lead">ルーター、サーバー、仮想ネットワークサービスの主データ</p></div><a sec:authorize="hasRole('ADMIN')" class="btn btn-primary" th:href="@{/devices/new}">＋ 新規登録</a></div>
+  <section class="panel">
+    <div class="panel-head"><form class="toolbar" method="get" th:action="@{/devices}"><div class="search"><input name="q" th:value="${q}" placeholder="機器名・ホスト名で検索"></div><input type="hidden" name="sort" th:value="${sort}"><button class="btn btn-secondary" type="submit">検索</button></form><span class="subtle" th:text="${devices.totalElements + ' 件'}">10 件</span></div>
+    <div class="table-wrap"><table><thead><tr><th><a th:href="@{/devices(q=${q},sort='name',direction=${direction == 'asc' ? 'desc' : 'asc'})}">機器名</a></th><th>ホスト</th><th>種別</th><th>設置場所</th><th>ベンダー</th><th>状態</th><th>更新</th></tr></thead><tbody>
+      <tr th:each="device : ${devices.content}"><td><a class="cell-title" th:href="@{/devices/{id}(id=${device.id})}" th:text="${device.name}">機器</a><span class="cell-sub" th:text="${device.description}">説明</span></td><td class="mono" th:text="${device.hostname}">10.0.0.1</td><td th:text="${device.deviceType}">ROUTER</td><td th:text="${device.location}">東京</td><td th:text="${device.vendor}">Vendor</td><td><span class="badge" th:classappend="${#strings.toLowerCase(device.status.name())}" th:text="${device.status}">NORMAL</span></td><td class="mono" th:text="${#temporals.format(device.updatedAt, 'yyyy/MM/dd HH:mm')}">2026</td></tr>
+    </tbody></table><div class="empty" th:if="${devices.empty}">条件に一致する監視対象はありません。</div></div>
+    <div class="pagination"><span class="subtle" th:text="${'ページ ' + (devices.number + 1) + ' / ' + (devices.totalPages == 0 ? 1 : devices.totalPages)}">1 / 1</span><div class="pagination-links"><a class="page-link" th:classappend="${devices.first} ? 'disabled'" th:href="@{/devices(q=${q},page=${devices.number - 1},sort=${sort},direction=${direction})}">前へ</a><a class="page-link" th:classappend="${devices.last} ? 'disabled'" th:href="@{/devices(q=${q},page=${devices.number + 1},sort=${sort},direction=${direction})}">次へ</a></div></div>
+  </section>
+</main></body></html>
+

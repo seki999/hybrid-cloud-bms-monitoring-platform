@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:fragment="layout(title, content, active)">
+<head th:fragment="head(title)">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:replace="${title}">BMS Monitoring</title>
+  <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <a class="brand" th:href="@{/dashboard}">
+      <span class="brand-mark">BM</span>
+      <span><span class="brand-title">BMS CONTROL</span><span class="brand-subtitle">HYBRID CLOUD NOC</span></span>
+    </a>
+    <nav>
+      <section class="nav-section">
+        <p class="nav-label">OVERVIEW</p>
+        <a class="nav-link" th:classappend="${active == 'dashboard'} ? 'active'" th:href="@{/dashboard}"><span class="nav-icon">◆</span>ダッシュボード</a>
+      </section>
+      <section class="nav-section">
+        <p class="nav-label">MONITORING</p>
+        <a class="nav-link" th:classappend="${active == 'devices'} ? 'active'" th:href="@{/devices}"><span class="nav-icon">▣</span>監視対象機器</a>
+        <a class="nav-link" th:classappend="${active == 'rules'} ? 'active'" th:href="@{/monitoring-rules}"><span class="nav-icon">⌁</span>監視ルール</a>
+        <a class="nav-link" th:classappend="${active == 'events'} ? 'active'" th:href="@{/events}"><span class="nav-icon">≡</span>イベント</a>
+        <a class="nav-link" th:classappend="${active == 'alerts'} ? 'active'" th:href="@{/alerts}"><span class="nav-icon">!</span>アラート</a>
+      </section>
+      <section class="nav-section">
+        <p class="nav-label">PROTOCOL</p>
+        <a class="nav-link" th:classappend="${active == 'syslog'} ? 'active'" th:href="@{/history/syslog}"><span class="nav-icon">S</span>Syslog受信履歴</a>
+        <a class="nav-link" th:classappend="${active == 'snmp-trap'} ? 'active'" th:href="@{/history/snmp-trap}"><span class="nav-icon">T</span>SNMP Trap</a>
+        <a class="nav-link" th:classappend="${active == 'snmp-get'} ? 'active'" th:href="@{/history/snmp-get}"><span class="nav-icon">G</span>SNMP GET</a>
+        <a class="nav-link" th:classappend="${active == 'tcp-ping'} ? 'active'" th:href="@{/history/tcp-ping}"><span class="nav-icon">P</span>TCP Ping</a>
+      </section>
+      <section class="nav-section">
+        <p class="nav-label">OPERATIONS</p>
+        <a class="nav-link" th:classappend="${active == 'notifications'} ? 'active'" th:href="@{/notifications}"><span class="nav-icon">✉</span>通知先設定</a>
+        <a class="nav-link" th:classappend="${active == 'reports'} ? 'active'" th:href="@{/reports}"><span class="nav-icon">▥</span>レポート</a>
+        <a class="nav-link" th:classappend="${active == 'status'} ? 'active'" th:href="@{/system/status}"><span class="nav-icon">●</span>システム稼働状況</a>
+        <a class="nav-link" th:classappend="${active == 'audit'} ? 'active'" th:href="@{/audit}"><span class="nav-icon">✓</span>監査ログ</a>
+        <a class="nav-link" sec:authorize="hasRole('ADMIN')" th:classappend="${active == 'users'} ? 'active'" th:href="@{/users}"><span class="nav-icon">♙</span>ユーザー管理</a>
+      </section>
+    </nav>
+  </aside>
+  <div class="main-column">
+    <header class="topbar">
+      <div class="environment"><span class="pulse"></span><span>LOCAL / OCI READY</span><span class="badge normal">稼働中</span></div>
+      <div class="top-actions">
+        <div class="user-block"><span class="user-name" sec:authentication="name">admin</span><span class="user-role">SIGNED IN USER</span></div>
+        <form class="logout-form" th:action="@{/logout}" method="post"><button class="btn btn-ghost" type="submit">ログアウト</button></form>
+      </div>
+    </header>
+    <div class="content" th:replace="${content}"><main>Content</main></div>
+    <footer class="footer"><span>hybrid-cloud-bms-monitoring-platform</span><span>Java 21 · Spring Boot · AWS + OCI</span></footer>
+  </div>
+  <script th:src="@{/js/app.js}" defer></script>
+</div>
+</body>
+</html>

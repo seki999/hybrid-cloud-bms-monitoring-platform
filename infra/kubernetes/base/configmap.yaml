@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bms-config
+  namespace: bms-monitoring
+data:
+  SPRING_PROFILES_ACTIVE: postgresql,json-log
+  SERVER_SHUTDOWN: graceful
+  MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED: "true"
+  DB_HOST: postgresql
+  DB_PORT: "5432"
+  POSTGRES_DB: bms
+  POSTGRES_USER: bms
+  SYSLOG_PORT: "5514"
+  SNMP_TRAP_PORT: "1162"
+  MAIL_HOST: mailhog
+  MAIL_PORT: "1025"

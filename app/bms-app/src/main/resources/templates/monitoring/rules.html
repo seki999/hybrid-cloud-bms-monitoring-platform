@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main}, 'rules')}">
+<head><title>監視ルール設定 | BMS Monitoring</title></head>
+<body><main>
+  <div class="page-head"><div><p class="eyebrow">THRESHOLD & SUPPRESSION</p><h1>監視ルール設定</h1><p class="lead">正規化された測定値に対する WARNING / CRITICAL しきい値</p></div><span class="badge maintenance">ADMIN</span></div>
+  <div class="warning-box">重複抑止時間内でも Event は保存されます。Alert と通知のみを集約し、観測事実を失いません。</div>
+  <section class="panel"><div class="panel-head"><h2>有効な監視ルール</h2><span class="subtle" th:text="${rules.size() + ' 件'}">10件</span></div><div class="table-wrap"><table><thead><tr><th>ルール名</th><th>機器 / 対象</th><th>メトリクス</th><th>WARNING</th><th>CRITICAL</th><th>重複抑止</th><th>状態</th></tr></thead><tbody><tr th:each="rule : ${rules}"><td class="cell-title" th:text="${rule.name}">rule</td><td><span class="cell-title" th:text="${rule.target.device.name}">device</span><span class="cell-sub" th:text="${rule.target.name}">target</span></td><td class="mono" th:text="${rule.metricName}">metric</td><td th:text="${rule.warningThreshold}">300</td><td th:text="${rule.criticalThreshold}">1000</td><td th:text="${rule.suppressionSeconds + ' 秒'}">300秒</td><td><span class="badge" th:classappend="${rule.enabled ? 'normal' : 'closed'}" th:text="${rule.enabled ? '有効' : '無効'}">有効</span></td></tr></tbody></table></div></section>
+</main></body></html>
+

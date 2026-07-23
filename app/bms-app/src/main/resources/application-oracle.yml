@@ -1,0 +1,19 @@
+# Oracle ADB 是可选生产 Profile；没有 Wallet 和环境变量时不得启用。
+spring:
+  datasource:
+    url: ${ORACLE_JDBC_URL}
+    username: ${ORACLE_DB_USER}
+    password: ${ORACLE_DB_PASSWORD}
+    driver-class-name: oracle.jdbc.OracleDriver
+    hikari:
+      pool-name: bms-oracle-adb-pool
+      minimum-idle: 1
+      maximum-pool-size: 10
+      connection-timeout: 10000
+      validation-timeout: 3000
+      max-lifetime: 1500000
+  jpa:
+    database-platform: org.hibernate.dialect.OracleDialect
+  flyway:
+    enabled: false
+

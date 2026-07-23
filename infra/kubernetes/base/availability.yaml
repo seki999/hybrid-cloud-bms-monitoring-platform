@@ -1,0 +1,39 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: {name: bms-web-app, namespace: bms-monitoring}
+spec:
+  minAvailable: 1
+  selector: {matchLabels: {app: bms-web-app}}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: {name: bms-web-app, namespace: bms-monitoring}
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: bms-web-app}
+  minReplicas: 2
+  maxReplicas: 6
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: {type: Utilization, averageUtilization: 70}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bms-web-app
+  namespace: bms-monitoring
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: bms.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: bms-web-app, port: {name: http}}}

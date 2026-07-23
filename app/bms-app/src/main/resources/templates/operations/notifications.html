@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main}, 'notifications')}">
+<head><title>通知先設定 | BMS Monitoring</title></head>
+<body><main>
+  <div class="page-head"><div><p class="eyebrow">NOTIFICATION ROUTING</p><h1>通知先設定</h1><p class="lead">級別に応じた MailHog / OCI Notifications / 外部連携の配送先</p></div><span class="badge normal">IDEMPOTENT</span></div>
+  <div class="warning-box">外部警報器は安全 Mock のみです。ローカルコードから物理設備を TCP/SSH 制御しません。</div>
+  <section class="panel"><div class="panel-head"><h2>通知ルーティング</h2></div><div class="table-wrap"><table><thead><tr><th>通知先名</th><th>チャネル</th><th>アドレス</th><th>最低級別</th><th>状態</th></tr></thead><tbody><tr th:each="target : ${targets}"><td class="cell-title" th:text="${target.name}">運用</td><td><span class="badge maintenance" th:text="${target.channel}">EMAIL</span></td><td class="mono" th:text="${target.address}">address</td><td th:text="${target.minimumSeverity}">WARNING</td><td><span class="badge normal" th:text="${target.enabled ? '有効' : '無効'}">有効</span></td></tr></tbody></table></div></section>
+</main></body></html>
+

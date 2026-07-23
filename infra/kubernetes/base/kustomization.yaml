@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.example.yaml
+  - service-account.yaml
+  - postgresql.yaml
+  - mailhog.yaml
+  - bms-components.yaml
+  - services.yaml
+  - availability.yaml
+  - network-policy.yaml

@@ -1,0 +1,11 @@
+.git
+.idea
+.vscode
+**/target
+**/.terraform
+node_modules
+docs/screenshots
+out
+wallet
+*.log
+

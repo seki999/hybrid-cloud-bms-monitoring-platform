@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ログイン | BMS Monitoring</title>
+  <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<main class="login-page">
+  <section class="login-visual">
+    <div class="brand"><span class="brand-mark">BM</span><span><span class="brand-title">BMS CONTROL</span><span class="brand-subtitle">HYBRID CLOUD NETWORK OPERATIONS</span></span></div>
+    <h1>通信品質を、<br>ひとつの視界へ。</h1>
+    <p>AWS の能動監視と OCI のイベント処理を統合し、ルーター、VPN、サーバー、通信サービスの状態を継続監視します。</p>
+    <div class="network-strip"><span class="network-chip">SYSLOG UDP/TCP</span><span class="network-chip">SNMP v2c</span><span class="network-chip">TCP PING</span><span class="network-chip">OCI OKE</span></div>
+  </section>
+  <section class="login-form-wrap">
+    <form class="login-card" th:action="@{/login}" method="post">
+      <p class="eyebrow">SECURE ACCESS</p><h2>運用コンソール</h2>
+      <p class="login-note">認証情報を入力して監視画面へログインしてください。</p>
+      <div class="login-alert" th:if="${param.error}">ユーザー名またはパスワードが正しくありません。</div>
+      <div class="notice" th:if="${param.logout}">ログアウトしました。</div>
+      <div class="field"><label for="username">ユーザー名</label><input class="control" id="username" name="username" autocomplete="username" value="admin" required autofocus></div>
+      <div class="field"><label for="password">パスワード</label><input class="control" id="password" type="password" name="password" autocomplete="current-password" value="Admin123!" required></div>
+      <button class="btn btn-primary" type="submit">ログイン</button>
+      <p class="login-hint">ローカル学習用: admin / Admin123!<br>本番環境では既定アカウントを無効化し、企業 IdP を使用してください。</p>
+    </form>
+  </section>
+</main>
+</body>
+</html>

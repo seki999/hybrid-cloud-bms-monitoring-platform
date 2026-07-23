@@ -1,0 +1,93 @@
+name: hybrid-cloud-bms-monitoring-platform
+
+services:
+  postgresql:
+    image: postgres:16.8-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-bms_monitoring}
+      POSTGRES_USER: ${POSTGRES_USER:-bms_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-local-only}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgresql-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    networks: [bms-network]
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks: [bms-network]
+
+  snmp-agent:
+    image: polinux/snmpd:alpine
+    environment:
+      SNMP_COMMUNITY: ${SNMP_COMMUNITY:-change-me-local-community}
+    ports:
+      - "1161:161/udp"
+    networks: [bms-network]
+
+  bms-app:
+    build:
+      context: .
+      dockerfile: infra/docker/bms-app.Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: local,postgresql
+      DB_HOST: postgresql
+      DB_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-bms_monitoring}
+      POSTGRES_USER: ${POSTGRES_USER:-bms_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-local-only}
+      BMS_INGEST_API_KEY: ${BMS_INGEST_API_KEY:-change-me-local-ingest-key}
+      BMS_ADMIN_PASSWORD: ${BMS_ADMIN_PASSWORD:-Admin123!}
+      SNMP_COMMUNITY: ${SNMP_COMMUNITY:-change-me-local-community}
+      MAIL_HOST: mailhog
+      MAIL_PORT: 1025
+    ports:
+      - "8080:8080"
+      - "5514:5514/udp"
+      - "5514:5514/tcp"
+      - "1162:1162/udp"
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 35s
+    networks: [bms-network]
+
+  syslog-simulator:
+    image: alpine:3.21
+    command:
+      - /bin/sh
+      - -c
+      - >-
+        while true; do
+          logger -n bms-app -P 5514 -d -t edge-router
+          "BMS simulator interface ge-0/0/0 changed state to up";
+          sleep 30;
+        done
+    depends_on:
+      bms-app:
+        condition: service_healthy
+    networks: [bms-network]
+
+networks:
+  bms-network:
+    driver: bridge
+
+volumes:
+  postgresql-data:
+

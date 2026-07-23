@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${POSTGRES_DB:bms_monitoring}
+    username: ${POSTGRES_USER:bms_user}
+    password: ${POSTGRES_PASSWORD:change-me-local-only}
+    hikari:
+      pool-name: bms-postgresql-pool
+      minimum-idle: 2
+      maximum-pool-size: 12
+      connection-timeout: 5000
+      validation-timeout: 2000
+      idle-timeout: 300000
+      max-lifetime: 1500000
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+

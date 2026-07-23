@@ -1,0 +1,3 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>エラー | BMS Monitoring</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><main class="error-page"><section class="error-card"><span class="error-code" th:text="${status}">500</span><h1 th:text="${title}">エラーが発生しました</h1><p class="lead" th:text="${message}">運用担当者に連絡してください。</p><a class="btn btn-primary" th:href="@{/dashboard}">ダッシュボードへ戻る</a></section></main></body></html>
+

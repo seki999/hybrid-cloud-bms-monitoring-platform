@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main}, 'dashboard')}">
+<head><title>ダッシュボード | BMS Monitoring</title></head>
+<body><main>
+  <div class="page-head"><div><p class="eyebrow">NETWORK OPERATIONS OVERVIEW</p><h1>ダッシュボード</h1><p class="lead">AWS・OCI ハイブリッド監視の現在状態と直近24時間の傾向</p></div><a class="btn btn-secondary" th:href="@{/system/status}">稼働状況を確認</a></div>
+  <section class="kpi-grid">
+    <article class="kpi"><span class="kpi-label">監視機器</span><strong class="kpi-value" th:text="${dashboard.totalDevices}">10</strong><span class="kpi-meta">登録済みデバイス / サービス</span></article>
+    <article class="kpi success"><span class="kpi-label">正常</span><strong class="kpi-value" th:text="${dashboard.normalDevices}">7</strong><span class="kpi-meta">現在 NORMAL の監視対象</span></article>
+    <article class="kpi warning"><span class="kpi-label">WARNING</span><strong class="kpi-value" th:text="${dashboard.warningDevices}">2</strong><span class="kpi-meta">確認が必要な対象</span></article>
+    <article class="kpi critical"><span class="kpi-label">CRITICAL</span><strong class="kpi-value" th:text="${dashboard.criticalDevices}">1</strong><span class="kpi-meta">即時対応が必要</span></article>
+    <article class="kpi critical"><span class="kpi-label">未復旧アラート</span><strong class="kpi-value" th:text="${dashboard.activeAlerts}">4</strong><span class="kpi-meta">WARNING / CRITICAL / 確認済</span></article>
+  </section>
+  <section class="grid-2">
+    <article class="panel"><div class="panel-head"><h2>直近24時間イベントトレンド</h2><span class="badge normal">LIVE</span></div><div class="panel-body"><div class="chart-wrap"><canvas id="trend-chart" th:attr="data-values=${dashboard.hourlyTrend}" aria-label="直近24時間イベント数"></canvas></div></div></article>
+    <article class="panel"><div class="panel-head"><h2>プロトコル受信状況</h2><a class="subtle" th:href="@{/events}">全イベント →</a></div><div class="panel-body">
+      <div class="detail-grid">
+        <div class="detail-item"><span class="detail-label">SYSLOG</span><strong class="detail-value" th:text="${dashboard.syslogCount}">30</strong></div>
+        <div class="detail-item"><span class="detail-label">SNMP TRAP</span><strong class="detail-value" th:text="${dashboard.snmpTrapCount}">20</strong></div>
+        <div class="detail-item"><span class="detail-label">TCP PING成功率</span><strong class="detail-value" th:text="${dashboard.tcpPingSuccessRate + '%'}">85%</strong></div>
+      </div>
+      <div class="warning-box">Syslog/Trap は NLB、Web/API は HTTP Load Balancer または Ingress で公開します。</div>
+    </div></article>
+  </section>
+  <section class="grid-equal">
+    <article class="panel"><div class="panel-head"><h2>最近のイベント</h2><a class="subtle" th:href="@{/events}">一覧 →</a></div><div class="table-wrap"><table><thead><tr><th>時刻</th><th>機器</th><th>内容</th><th>状態</th></tr></thead><tbody><tr th:each="event : ${dashboard.recentEvents}"><td class="mono" th:text="${#temporals.format(event.occurredAt, 'MM/dd HH:mm:ss')}">07/23</td><td th:text="${event.device != null ? event.device.name : '未登録'}">機器</td><td class="truncate" th:text="${event.message}">event</td><td><span class="badge" th:classappend="${#strings.toLowerCase(event.status.name())}" th:text="${event.status}">NORMAL</span></td></tr></tbody></table></div></article>
+    <article class="panel"><div class="panel-head"><h2>最近のアラート</h2><a class="subtle" th:href="@{/alerts}">一覧 →</a></div><div class="table-wrap"><table><thead><tr><th>最終発生</th><th>タイトル</th><th>件数</th><th>状態</th></tr></thead><tbody><tr th:each="alert : ${dashboard.recentAlerts}"><td class="mono" th:text="${#temporals.format(alert.lastOccurredAt, 'MM/dd HH:mm')}">07/23</td><td><a class="cell-title" th:href="@{/alerts/{id}(id=${alert.id})}" th:text="${alert.title}">alert</a><span class="cell-sub" th:text="${alert.device.name}">device</span></td><td th:text="${alert.eventCount}">1</td><td><span class="badge" th:classappend="${#strings.toLowerCase(alert.status.name())}" th:text="${alert.status}">CRITICAL</span></td></tr></tbody></table></div></article>
+  </section>
+</main></body></html>

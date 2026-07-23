@@ -1,0 +1,11 @@
+{
+  "name": "hybrid-cloud-bms-monitoring-platform-browser-evidence",
+  "private": true,
+  "description": "Playwright is used only for reproducible browser screenshots; the application has no Node.js frontend build.",
+  "scripts": {
+    "screenshots": "node scripts/capture-screenshots.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.61.1"
+  }
+}

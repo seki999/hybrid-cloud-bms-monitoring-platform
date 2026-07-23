@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main}, 'reports')}">
+<head><title>履歴トレンドレポート | BMS Monitoring</title></head>
+<body><main>
+  <div class="page-head"><div><p class="eyebrow">HISTORICAL TREND</p><h1>履歴トレンドレポート</h1><p class="lead">監視イベント量とプロトコル品質の時系列サマリー</p></div><button class="btn btn-secondary" type="button">CSV出力（学習用）</button></div>
+  <section class="grid-2"><article class="panel"><div class="panel-head"><h2>24時間イベント推移</h2><span class="badge normal">24H</span></div><div class="panel-body"><div class="chart-wrap"><canvas id="report-chart" th:attr="data-values=${dashboard.hourlyTrend}"></canvas></div></div></article><article class="panel"><div class="panel-head"><h2>品質サマリー</h2></div><div class="panel-body"><div class="detail-grid"><div class="detail-item"><span class="detail-label">SYSLOG</span><span class="detail-value" th:text="${dashboard.syslogCount}">30</span></div><div class="detail-item"><span class="detail-label">SNMP TRAP</span><span class="detail-value" th:text="${dashboard.snmpTrapCount}">20</span></div><div class="detail-item"><span class="detail-label">TCP SUCCESS</span><span class="detail-value" th:text="${dashboard.tcpPingSuccessRate + '%'}">85%</span></div><div class="detail-item"><span class="detail-label">未復旧</span><span class="detail-value" th:text="${dashboard.activeAlerts}">4</span></div></div></div></article></section>
+  <section class="panel"><div class="panel-head"><h2>レポート設計</h2></div><div class="panel-body"><p class="lead">本画面は短期トレンドを表示します。長期保持では日次集約テーブル、パーティション、OCI Object Storage へのアーカイブを組み合わせます。</p></div></section>
+</main></body></html>
+

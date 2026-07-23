@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Service
+metadata: {name: bms-web-app, namespace: bms-monitoring}
+spec:
+  selector: {app: bms-web-app}
+  ports: [{name: http, port: 80, targetPort: http}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: syslog-receiver, namespace: bms-monitoring}
+spec:
+  type: LoadBalancer
+  selector: {app: syslog-receiver}
+  ports:
+    - {name: syslog-udp, port: 5514, targetPort: syslog-udp, protocol: UDP}
+    - {name: syslog-tcp, port: 5514, targetPort: syslog-tcp, protocol: TCP}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: snmp-trap-receiver, namespace: bms-monitoring}
+spec:
+  type: LoadBalancer
+  selector: {app: snmp-trap-receiver}
+  ports: [{name: snmp-trap, port: 1162, targetPort: snmp-trap, protocol: UDP}]

@@ -1,0 +1,3 @@
+enable_oci = false
+enable_aws = false
+# oci_compartment_id = "从未提交的 tfvars 或环境变量传入"

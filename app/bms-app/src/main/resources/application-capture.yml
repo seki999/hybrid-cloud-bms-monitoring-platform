@@ -1,0 +1,28 @@
+# Docker 引擎不可用时，仅用于自动化真实画面与 MockMvc 验证的临时数据库。
+spring:
+  datasource:
+    url: jdbc:h2:mem:bms;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+    hikari:
+      pool-name: bms-capture-pool
+      maximum-pool-size: 4
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+  flyway:
+    locations: classpath:db/migration
+  mail:
+    host: localhost
+    port: 1025
+
+bms:
+  demo-data:
+    initialize: true
+  notification:
+    enabled: false
+  protocol:
+    syslog:
+      enabled: true
+    snmp:
+      enabled: true

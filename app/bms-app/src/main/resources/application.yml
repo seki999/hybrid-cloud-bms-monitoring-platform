@@ -1,0 +1,77 @@
+spring:
+  application:
+    name: hybrid-cloud-bms-monitoring-platform
+  profiles:
+    default: local,postgresql
+  mvc:
+    hiddenmethod:
+      filter:
+        enabled: true
+  thymeleaf:
+    cache: false
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    test-connection: false
+
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    whitelabel:
+      enabled: false
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when_authorized
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+info:
+  app:
+    name: ${spring.application.name}
+    version: 1.0.0
+    role: ${BMS_COMPONENT:all}
+
+bms:
+  component: ${BMS_COMPONENT:all}
+  ingest:
+    api-key: ${BMS_INGEST_API_KEY:change-me-local-ingest-key}
+  security:
+    admin-password: ${BMS_ADMIN_PASSWORD:Admin123!}
+    operator-password: ${BMS_OPERATOR_PASSWORD:Operator123!}
+    viewer-password: ${BMS_VIEWER_PASSWORD:Viewer123!}
+  notification:
+    enabled: ${BMS_NOTIFICATION_ENABLED:true}
+    from: ${BMS_MAIL_FROM:bms-monitor@local.invalid}
+  protocol:
+    syslog:
+      enabled: ${SYSLOG_RECEIVER_ENABLED:true}
+      port: ${SYSLOG_PORT:5514}
+    snmp:
+      enabled: ${SNMP_RECEIVER_ENABLED:true}
+      trap-port: ${SNMP_TRAP_PORT:1162}
+      community: ${SNMP_COMMUNITY:change-me-local-community}
+  scheduler:
+    enabled: ${BMS_ALERT_SCHEDULER_ENABLED:true}
+    alert-check-ms: ${ALERT_CHECK_INTERVAL_MS:60000}

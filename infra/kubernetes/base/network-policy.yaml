@@ -1,0 +1,56 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: default-deny, namespace: bms-monitoring}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: allow-bms-required-traffic, namespace: bms-monitoring}
+spec:
+  podSelector:
+    matchExpressions:
+      - {key: app, operator: In, values: [bms-web-app, syslog-receiver, snmp-trap-receiver, monitoring-worker, alert-check-worker]}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - ports:
+        - {port: 8080, protocol: TCP}
+        - {port: 5514, protocol: TCP}
+        - {port: 5514, protocol: UDP}
+        - {port: 1162, protocol: UDP}
+  egress:
+    - to: [{podSelector: {matchLabels: {app: postgresql}}}]
+      ports: [{port: 5432, protocol: TCP}]
+    - to: [{podSelector: {matchLabels: {app: mailhog}}}]
+      ports: [{port: 1025, protocol: TCP}]
+    - ports:
+        - {port: 53, protocol: UDP}
+        - {port: 53, protocol: TCP}
+        - {port: 443, protocol: TCP}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: allow-postgresql-from-bms, namespace: bms-monitoring}
+spec:
+  podSelector: {matchLabels: {app: postgresql}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - {key: app, operator: In, values: [bms-web-app, syslog-receiver, snmp-trap-receiver, monitoring-worker, alert-check-worker]}
+      ports: [{port: 5432, protocol: TCP}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: allow-mailhog-from-bms, namespace: bms-monitoring}
+spec:
+  podSelector: {matchLabels: {app: mailhog}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - {key: app, operator: In, values: [bms-web-app, syslog-receiver, snmp-trap-receiver, monitoring-worker, alert-check-worker]}
+      ports: [{port: 1025, protocol: TCP}]

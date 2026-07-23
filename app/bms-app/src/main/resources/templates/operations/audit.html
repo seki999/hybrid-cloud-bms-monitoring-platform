@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main}, 'audit')}">
+<head><title>監査ログ | BMS Monitoring</title></head>
+<body><main>
+  <div class="page-head"><div><p class="eyebrow">AUDIT TRAIL</p><h1>監査ログ</h1><p class="lead">設備変更、アラート操作、通知処理の追跡記録</p></div><span class="badge maintenance">APPEND ONLY</span></div>
+  <section class="panel"><div class="table-wrap"><table><thead><tr><th>日時</th><th>実行者</th><th>操作</th><th>リソース</th><th>ID</th><th>詳細</th></tr></thead><tbody><tr th:each="log : ${logs.content}"><td class="mono" th:text="${#temporals.format(log.createdAt, 'yyyy/MM/dd HH:mm:ss')}">date</td><td th:text="${log.actor}">system</td><td><span class="badge maintenance" th:text="${log.action}">ACTION</span></td><td th:text="${log.resourceType}">ALERT</td><td class="mono" th:text="${log.resourceId}">1</td><td th:text="${log.detail}">detail</td></tr></tbody></table></div><div class="pagination"><span class="subtle" th:text="${logs.totalElements + ' 件'}">10</span><div class="pagination-links"><a class="page-link" th:classappend="${logs.first} ? 'disabled'" th:href="@{/audit(page=${logs.number - 1})}">前へ</a><a class="page-link" th:classappend="${logs.last} ? 'disabled'" th:href="@{/audit(page=${logs.number + 1})}">次へ</a></div></div></section>
+</main></body></html>
+

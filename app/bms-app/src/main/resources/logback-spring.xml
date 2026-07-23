@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- correlationId/requestId 来自 HTTP 过滤器的 MDC；不得在 pattern 中加入认证头或 Secret。 -->
+    <property name="TEXT_PATTERN" value="%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] [req=%X{requestId:-none} corr=%X{correlationId:-none}] %logger{36} - %msg%n"/>
+
+    <springProfile name="!json-log">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder><pattern>${TEXT_PATTERN}</pattern><charset>UTF-8</charset></encoder>
+        </appender>
+    </springProfile>
+
+    <springProfile name="json-log">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <!-- 只使用 Logback 自带编码器，避免生产镜像为 JSON 日志额外引入运行时依赖。 -->
+            <encoder><pattern>{"timestamp":"%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX}","level":"%level","logger":"%logger{36}","requestId":"%X{requestId:-none}","correlationId":"%X{correlationId:-none}","message":"%replace(%msg){'"','\\"'}"}%n</pattern><charset>UTF-8</charset></encoder>
+        </appender>
+    </springProfile>
+
+    <root level="INFO"><appender-ref ref="CONSOLE"/></root>
+</configuration>
