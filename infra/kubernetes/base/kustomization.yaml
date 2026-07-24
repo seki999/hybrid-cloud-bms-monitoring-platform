@@ -1,3 +1,5 @@
+# 汇总平台基础 Kubernetes 资源并统一命名空间，作为所有环境覆盖层的稳定基线。
+# 资源顺序不表达启动顺序，组件可用性由探针和控制器持续协调。
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:

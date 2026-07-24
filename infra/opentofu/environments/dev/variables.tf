@@ -1,3 +1,5 @@
+# 定义开发环境的云平台启用开关与共享命名参数，允许按凭据可用性逐侧启用。
+# 默认值应保持保守，真实资源创建前仍需人工审阅 tfvars 和计划结果。
 variable "enable_oci" {
   type    = bool
   default = false

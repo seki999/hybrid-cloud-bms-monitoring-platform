@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- 告警操作确认页：在不可逆的状态迁移前再次展示目标与影响，降低误确认或误关闭的风险。 -->
 <html lang="ja" xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main}, 'alerts')}">
 <head><title>アラート確認 | BMS Monitoring</title></head>
 <body><main>
@@ -6,4 +7,3 @@
   <section class="grid-equal"><article class="panel"><div class="panel-head"><h2 th:text="${alert.title}">alert</h2><span class="badge" th:classappend="${#strings.toLowerCase(alert.status.name())}" th:text="${alert.status}">CRITICAL</span></div><div class="panel-body"><p th:text="${alert.summary}">summary</p><div class="detail-grid"><div class="detail-item"><span class="detail-label">機器</span><span class="detail-value" th:text="${alert.device.name}">device</span></div><div class="detail-item"><span class="detail-label">級別</span><span class="detail-value" th:text="${alert.severity}">critical</span></div><div class="detail-item"><span class="detail-label">Event数</span><span class="detail-value" th:text="${alert.eventCount}">3</span></div></div></div></article>
   <article class="panel"><div class="panel-head"><h2>実行する操作</h2></div><div class="panel-body"><div class="warning-box">「確認済み」は対応開始を示し、障害は継続します。「終了」は運用判断でライフサイクルを閉じます。</div><form th:action="@{/alerts/{id}/acknowledge(id=${alert.id})}" method="post"><button class="btn btn-primary" type="submit">確認済みにする</button></form><form th:action="@{/alerts/{id}/close(id=${alert.id})}" method="post"><button class="btn btn-danger" type="submit">アラートを終了する</button></form></div></article></section>
 </main></body></html>
-

@@ -1,3 +1,5 @@
+# 创建私网 OKE 控制面与工作节点池，复用网络模块传入的子网，避免模块内部重复规划地址空间。
+# 所有资源都受 enabled 控制，使同一环境定义可以按云平台逐步启用。
 resource "oci_containerengine_cluster" "this" {
   count              = var.enabled ? 1 : 0
   compartment_id     = var.compartment_id

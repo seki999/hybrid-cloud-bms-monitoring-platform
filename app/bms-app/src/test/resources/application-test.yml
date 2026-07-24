@@ -1,3 +1,5 @@
+# 测试配置使用隔离数据库与确定性参数，避免单元/集成测试读取开发机环境或连接真实服务。
+# 外部接收器和调度器按测试需要关闭，使失败只反映被测行为。
 spring:
   datasource:
     url: jdbc:h2:mem:bms-test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
@@ -26,4 +28,3 @@ bms:
       enabled: false
   scheduler:
     alert-check-ms: 3600000
-

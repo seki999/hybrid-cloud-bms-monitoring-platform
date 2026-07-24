@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- SNMP Trap 模拟器子模块：继承根项目版本约束，并提供可从命令行运行的协议测试工具。 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"><modelVersion>4.0.0</modelVersion>
   <parent><groupId>com.example.bms</groupId><artifactId>hybrid-cloud-bms-monitoring-platform</artifactId><version>1.0.0-SNAPSHOT</version><relativePath>../../pom.xml</relativePath></parent>
   <artifactId>snmp-simulator</artifactId>
   <dependencies><dependency><groupId>org.snmp4j</groupId><artifactId>snmp4j</artifactId></dependency></dependencies>
   <build><plugins><plugin><groupId>org.codehaus.mojo</groupId><artifactId>exec-maven-plugin</artifactId><version>3.5.0</version><configuration><mainClass>com.example.bms.simulator.snmp.SnmpTrapSimulator</mainClass></configuration></plugin></plugins></build>
 </project>
-

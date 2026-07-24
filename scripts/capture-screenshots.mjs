@@ -1,3 +1,5 @@
+// 使用固定视口、固定页面顺序和真实 Chromium 生成可重复的文档截图，作为界面验收证据。
+// 登录会话只存在于本次浏览器进程，脚本结束后立即关闭，避免把认证状态写入仓库。
 import { chromium } from "playwright";
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";

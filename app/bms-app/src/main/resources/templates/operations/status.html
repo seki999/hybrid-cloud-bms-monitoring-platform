@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- 系统状态页：汇总应用、数据库和协议接收器健康度，为值班人员提供单一运行状况入口。 -->
 <html lang="ja" xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main}, 'status')}">
 <head><title>システム稼働状況 | BMS Monitoring</title></head>
 <body><main>
@@ -6,4 +7,3 @@
   <section class="kpi-grid"><article class="kpi success"><span class="kpi-label">WEB APP</span><strong class="kpi-value">UP</strong><span class="kpi-meta">HTTP / Thymeleaf</span></article><article class="kpi success"><span class="kpi-label">DATABASE</span><strong class="kpi-value">UP</strong><span class="kpi-meta">HikariCP / Flyway</span></article><article class="kpi success"><span class="kpi-label">SYSLOG</span><strong class="kpi-value">UP</strong><span class="kpi-meta">UDP + TCP 5514</span></article><article class="kpi success"><span class="kpi-label">SNMP TRAP</span><strong class="kpi-value">UP</strong><span class="kpi-meta">UDP 1162</span></article><article class="kpi success"><span class="kpi-label">ALERT WORKER</span><strong class="kpi-value">UP</strong><span class="kpi-meta">Scheduled check</span></article></section>
   <section class="panel"><div class="panel-head"><h2>ランタイム情報</h2><span class="badge normal">HEALTHY</span></div><div class="panel-body"><div class="detail-grid"><div class="detail-item" th:each="entry : ${status}"><span class="detail-label" th:text="${entry.key}">key</span><span class="detail-value" th:text="${entry.value}">value</span></div></div></div></section>
 </main></body></html>
-

@@ -1,8 +1,8 @@
 <!DOCTYPE html>
+<!-- TCP Ping 历史页：展示探测目标、耗时与成败结果，帮助区分网络不可达和应用层故障。 -->
 <html lang="ja" xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main}, 'tcp-ping')}">
 <head><title>TCP Ping結果一覧 | BMS Monitoring</title></head>
 <body><main>
   <div class="page-head"><div><p class="eyebrow">JAVA SOCKET CONNECTIVITY</p><h1>TCP Ping結果一覧</h1><p class="lead">ICMP ではなく指定 IP・TCP ポートへの Socket 接続結果</p></div><span class="badge maintenance">TIMEOUT + RETRY</span></div>
   <section class="panel"><div class="table-wrap"><table><thead><tr><th>確認日時</th><th>機器 / ホスト</th><th>ポート</th><th>結果</th><th>応答時間</th><th>エラー種別</th><th>Retry</th></tr></thead><tbody><tr th:each="item : ${results.content}"><td class="mono" th:text="${#temporals.format(item.checkedAt, 'yyyy/MM/dd HH:mm:ss')}">date</td><td><span class="cell-title" th:text="${item.device != null ? item.device.name : item.host}">host</span><span class="cell-sub mono" th:text="${item.host}">host</span></td><td class="mono" th:text="${item.port}">443</td><td><span class="badge" th:classappend="${item.success ? 'normal' : 'failed'}" th:text="${item.success ? 'SUCCESS' : 'FAILED'}">SUCCESS</span></td><td th:text="${item.responseMillis + ' ms'}">20ms</td><td th:text="${item.errorType != null ? item.errorType : '-'}">-</td><td th:text="${item.retryCount}">0</td></tr></tbody></table></div><div class="pagination"><span class="subtle" th:text="${results.totalElements + ' 件'}">20件</span><div class="pagination-links"><a class="page-link" th:classappend="${results.first} ? 'disabled'" th:href="@{/history/tcp-ping(page=${results.number - 1})}">前へ</a><a class="page-link" th:classappend="${results.last} ? 'disabled'" th:href="@{/history/tcp-ping(page=${results.number + 1})}">次へ</a></div></div></section>
 </main></body></html>
-

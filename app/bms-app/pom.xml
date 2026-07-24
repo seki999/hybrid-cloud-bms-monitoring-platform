@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- BMS 主应用子模块：聚合 Spring MVC、持久化、安全、协议接收与可观测性依赖，并生成可执行应用包。 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -43,4 +44,3 @@
         </plugins>
     </build>
 </project>
-

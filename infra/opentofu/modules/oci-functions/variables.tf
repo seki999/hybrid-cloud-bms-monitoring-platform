@@ -1,3 +1,5 @@
+# 定义 OCI Functions 应用所需网络、镜像与命名输入，并通过类型约束尽早发现环境配置错误。
+# enabled 用于在尚未启用函数服务的环境中保留模块接口而跳过资源创建。
 variable "enabled" {
   type    = bool
   default = false

@@ -20,6 +20,10 @@ import org.snmp4j.smi.UdpAddress;
 import org.snmp4j.smi.VariableBinding;
 import org.snmp4j.transport.DefaultUdpTransportMapping;
 
+/**
+ * 在 IPv4 回环地址上验证 Trap 接收器的真实 UDP 收发与生命周期管理。
+ * 使用动态端口避免与本机 SNMP 服务冲突，并确保测试不会依赖外部网络设备。
+ */
 class SnmpTrapReceiverTest {
 
     @Test

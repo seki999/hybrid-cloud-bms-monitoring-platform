@@ -12,6 +12,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
+/**
+ * 验证 TCP 探测的成功、失败、超时与重试语义，以及结果记录方式。
+ * 网络连接由可控替身隔离，保证测试不会因开发机器的端口状态而波动。
+ */
 class TcpPingServiceTest {
     @Mock TcpPingResultRepository repository;
 
@@ -32,4 +36,3 @@ class TcpPingServiceTest {
         assertFalse(result.isSuccess());
     }
 }
-

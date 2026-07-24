@@ -1,3 +1,5 @@
+# 部署本地/验证用途的 PostgreSQL 服务与持久化工作负载，为 BMS 应用提供关系数据库。
+# 生产环境应使用受管数据库和外部秘密，本清单中的示例值不得直接复用。
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

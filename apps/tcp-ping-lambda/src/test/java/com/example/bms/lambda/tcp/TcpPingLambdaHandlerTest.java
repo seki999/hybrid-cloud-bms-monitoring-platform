@@ -6,6 +6,10 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
+/**
+ * 验证 Lambda 处理器能够解析探测请求，并输出符合 API 契约的成功或失败结果。
+ * 测试使用本地可控目标，避免依赖公网连通性和云端 Lambda 运行环境。
+ */
 class TcpPingLambdaHandlerTest {
     @Test void checksMultipleTargetsAndPublishesEachResult() {
         AtomicInteger published = new AtomicInteger();
@@ -19,4 +23,3 @@ class TcpPingLambdaHandlerTest {
         assertEquals(2, published.get());
     }
 }
-

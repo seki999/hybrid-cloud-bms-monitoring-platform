@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- 设备编辑页：复用同一表单处理新建与更新，并将 Bean Validation 错误贴近字段展示，避免重复校验规则。 -->
 <html lang="ja" xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main}, 'devices')}">
 <head><title>監視対象機器登録・編集 | BMS Monitoring</title></head>
 <body><main>
@@ -10,4 +11,3 @@
     <div class="field"><label for="description">説明</label><textarea class="control" id="description" th:field="*{description}" maxlength="500"></textarea><p class="field-error" th:errors="*{description}">error</p></div>
   </div><div class="panel-head"><span class="subtle">保存操作は監査ログに記録されます。</span><button class="btn btn-primary" type="submit">保存する</button></div></form>
 </main></body></html>
-

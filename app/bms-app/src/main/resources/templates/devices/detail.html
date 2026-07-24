@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- 设备详情页：汇总基础属性、当前运行状态及关联监控信息，作为从设备视角排查故障的下钻入口。 -->
 <html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main}, 'devices')}">
 <head><title>監視対象機器詳細 | BMS Monitoring</title></head>
 <body><main>
@@ -9,4 +10,3 @@
   </div></div></section>
   <section class="panel"><div class="panel-head"><h2>監視対象</h2><span class="subtle" th:text="${targets.size() + ' 件'}">2 件</span></div><div class="table-wrap"><table><thead><tr><th>監視名</th><th>方式</th><th>宛先</th><th>OID</th><th>間隔</th><th>状態</th></tr></thead><tbody><tr th:each="target : ${targets}"><td class="cell-title" th:text="${target.name}">監視</td><td th:text="${target.targetType}">TCP</td><td class="mono" th:text="${target.host + ':' + (target.port != null ? target.port : '-')}">host</td><td class="mono" th:text="${target.oid != null ? target.oid : '-'}">-</td><td th:text="${target.intervalSeconds + ' 秒'}">60秒</td><td><span class="badge" th:classappend="${target.enabled ? 'normal' : 'closed'}" th:text="${target.enabled ? '有効' : '無効'}">有効</span></td></tr></tbody></table></div></section>
 </main></body></html>
-

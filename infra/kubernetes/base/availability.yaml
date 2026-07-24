@@ -1,3 +1,5 @@
+# 通过 PodDisruptionBudget 与副本可用性约束，降低节点维护期间同时中断所有应用实例的风险。
+# 该保护只覆盖自愿驱逐，仍需结合副本数、探针和跨节点调度实现完整高可用。
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata: {name: bms-web-app, namespace: bms-monitoring}

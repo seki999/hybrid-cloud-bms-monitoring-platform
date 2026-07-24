@@ -1,3 +1,5 @@
+# 本地 Compose 栈同时编排应用、PostgreSQL、邮件捕获和协议测试依赖，提供一条命令即可复现的联调环境。
+# 所有默认秘密只适用于隔离开发环境；共享或生产部署必须通过环境变量替换并使用正式秘密管理。
 name: hybrid-cloud-bms-monitoring-platform
 
 services:
@@ -90,4 +92,3 @@ networks:
 
 volumes:
   postgresql-data:
-

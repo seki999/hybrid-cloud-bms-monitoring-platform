@@ -5,6 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
+/**
+ * 覆盖 RFC 3164、RFC 5424 与异常输入的 Syslog 解析行为。
+ * 固定报文样本用于保护优先级、时间戳、主机名和消息正文的兼容性。
+ */
 class SyslogParserTest {
     private final SyslogParser parser = new SyslogParser();
 
@@ -30,4 +34,3 @@ class SyslogParserTest {
         assertEquals("not-a-syslog-message", result.rawMessage());
     }
 }
-

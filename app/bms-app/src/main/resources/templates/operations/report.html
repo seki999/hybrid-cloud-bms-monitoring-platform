@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- 运维报告页：聚合指定期间的协议量、告警和可用性统计，输出结果用于交接而非替代原始审计记录。 -->
 <html lang="ja" xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main}, 'reports')}">
 <head><title>履歴トレンドレポート | BMS Monitoring</title></head>
 <body><main>
@@ -6,4 +7,3 @@
   <section class="grid-2"><article class="panel"><div class="panel-head"><h2>24時間イベント推移</h2><span class="badge normal">24H</span></div><div class="panel-body"><div class="chart-wrap"><canvas id="report-chart" th:attr="data-values=${dashboard.hourlyTrend}"></canvas></div></div></article><article class="panel"><div class="panel-head"><h2>品質サマリー</h2></div><div class="panel-body"><div class="detail-grid"><div class="detail-item"><span class="detail-label">SYSLOG</span><span class="detail-value" th:text="${dashboard.syslogCount}">30</span></div><div class="detail-item"><span class="detail-label">SNMP TRAP</span><span class="detail-value" th:text="${dashboard.snmpTrapCount}">20</span></div><div class="detail-item"><span class="detail-label">TCP SUCCESS</span><span class="detail-value" th:text="${dashboard.tcpPingSuccessRate + '%'}">85%</span></div><div class="detail-item"><span class="detail-label">未復旧</span><span class="detail-value" th:text="${dashboard.activeAlerts}">4</span></div></div></div></article></section>
   <section class="panel"><div class="panel-head"><h2>レポート設計</h2></div><div class="panel-body"><p class="lead">本画面は短期トレンドを表示します。長期保持では日次集約テーブル、パーティション、OCI Object Storage へのアーカイブを組み合わせます。</p></div></section>
 </main></body></html>
-

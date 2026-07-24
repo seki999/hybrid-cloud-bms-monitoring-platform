@@ -20,6 +20,10 @@ import org.springframework.security.test.context.support.WithMockUser;
 
 @WebMvcTest(IngestApiController.class)
 @WithMockUser
+/**
+ * 验证监控事件写入 API 的请求解析、认证与响应契约。
+ * 测试通过 MockMvc 走真实 MVC 管线，同时隔离外部协议接收器以保持结果稳定。
+ */
 class IngestApiControllerTest {
     @Autowired MockMvc mvc;
     @MockitoBean ApiKeyService keys;

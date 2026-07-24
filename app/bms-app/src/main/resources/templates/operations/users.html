@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- 用户运维页：展示本地操作员账号和角色边界；敏感凭据不会回显到页面或日志。 -->
 <html lang="ja" xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main}, 'users')}">
 <head><title>ユーザー管理 | BMS Monitoring</title></head>
 <body><main>
@@ -6,4 +7,3 @@
   <div class="warning-box">本番環境ではローカルユーザーを無効化し、OIDC/企業 IdP のグループを BMS ロールへマッピングします。</div>
   <section class="panel"><div class="panel-head"><h2>ローカル学習ユーザー</h2></div><div class="table-wrap"><table><thead><tr><th>ユーザー名</th><th>表示名</th><th>ロール</th><th>状態</th><th>作成日時</th></tr></thead><tbody><tr th:each="user : ${users}"><td class="cell-title mono" th:text="${user.username}">admin</td><td th:text="${user.displayName}">管理者</td><td><span class="badge maintenance" th:text="${user.role}">ADMIN</span></td><td><span class="badge normal" th:text="${user.enabled ? '有効' : '無効'}">有効</span></td><td class="mono" th:text="${#temporals.format(user.createdAt, 'yyyy/MM/dd HH:mm')}">date</td></tr></tbody></table></div></section>
 </main></body></html>
-

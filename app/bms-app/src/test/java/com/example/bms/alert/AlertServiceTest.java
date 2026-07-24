@@ -13,6 +13,10 @@ import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
+/**
+ * 验证告警服务在查询详情时兼容没有监控规则的协议直报告警。
+ * 该回归场景可防止可空关联被误当作必填关系并引发页面加载异常。
+ */
 class AlertServiceTest {
 
     @Test

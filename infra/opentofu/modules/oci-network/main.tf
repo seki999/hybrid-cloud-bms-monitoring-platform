@@ -1,3 +1,5 @@
+# 创建 OCI VCN、公私子网、网关与路由关系，为容器、数据库和函数提供分层网络。
+# 公网与私网职责分离，避免后端工作负载因默认路由而被意外直接暴露。
 resource "oci_core_vcn" "this" {
   count          = var.enabled ? 1 : 0
   compartment_id = var.compartment_id

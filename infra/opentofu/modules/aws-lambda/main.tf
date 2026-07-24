@@ -1,3 +1,5 @@
+# 创建最小执行角色、日志权限与 VPC 内 Lambda 函数，部署项目构建产生的函数包。
+# IAM、网络和函数资源保持显式关联，便于审计权限来源和销毁顺序。
 resource "aws_iam_role" "this" {
   count              = var.enabled ? 1 : 0
   name               = "${var.name}-role"

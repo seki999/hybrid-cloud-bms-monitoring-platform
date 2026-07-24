@@ -1,3 +1,5 @@
+# 定义本项目专用的 kind 集群拓扑和端口映射，使浏览器与协议模拟器可以访问集群内服务。
+# 集群名称与启停脚本保持一致，避免清理操作误命中其他开发集群。
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 name: bms-monitoring

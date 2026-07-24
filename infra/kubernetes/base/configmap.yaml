@@ -1,3 +1,5 @@
+# 集中保存不敏感的应用运行参数，使同一镜像可以在不同集群环境复用。
+# 密码、API Key 和团体字必须放入 Secret，不得加入 ConfigMap 或版本控制。
 apiVersion: v1
 kind: ConfigMap
 metadata:

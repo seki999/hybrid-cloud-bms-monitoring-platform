@@ -7,6 +7,10 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
 
+/**
+ * 验证 SNMP Get Lambda 的输入校验、客户端调用和响应序列化边界。
+ * 外部设备访问被隔离，使测试只关注函数处理器的稳定契约。
+ */
 class SnmpGetLambdaHandlerTest {
     @Test void forwardsSuccessfulResultWithoutRealNetwork() {
         AtomicBoolean published = new AtomicBoolean();
@@ -20,4 +24,3 @@ class SnmpGetLambdaHandlerTest {
         assertTrue(published.get());
     }
 }
-

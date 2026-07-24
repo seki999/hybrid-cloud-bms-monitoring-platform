@@ -5,6 +5,10 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
+/**
+ * 验证告警通知函数对事件负载的解析以及邮件/回调输出内容。
+ * 测试固定输入数据，确保无服务器运行时升级不会改变通知契约。
+ */
 class AlertNotificationFunctionTest {
     @Test void criticalUsesTwoChannelsAndSuppressesDuplicate() {
         AtomicInteger sends = new AtomicInteger();
@@ -17,4 +21,3 @@ class AlertNotificationFunctionTest {
         assertEquals(2, sends.get());
     }
 }
-

@@ -1,3 +1,7 @@
+/*
+ * 全站视觉样式：通过设计令牌统一颜色、间距、阴影和状态语义，再由布局与组件规则复用。
+ * 响应式规则优先保证监控表格与关键指标可读，不在 CSS 中承载任何业务状态判断。
+ */
 :root {
   --bg: #f3f6fa;
   --panel: #ffffff;
@@ -166,4 +170,3 @@ textarea.control { min-height: 100px; resize: vertical; }
   .login-page { grid-template-columns: 1fr; }
   .login-visual { display: none; }
 }
-

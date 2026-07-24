@@ -13,6 +13,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
+/**
+ * 验证设备应用服务的创建、更新、查询和业务校验。
+ * 仓储与审计依赖使用替身，测试聚焦事务边界内的状态变化与协作关系。
+ */
 class DeviceServiceTest {
     @Mock DeviceRepository repository;
     @Mock MonitoringTargetRepository targets;
@@ -29,4 +33,3 @@ class DeviceServiceTest {
         verify(repository).save(saved);
     }
 }
-

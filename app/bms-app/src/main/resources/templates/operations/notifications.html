@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- 通知管理页：维护发送目标与启用状态，页面只展示脱敏配置，实际投递与重试由后端服务负责。 -->
 <html lang="ja" xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main}, 'notifications')}">
 <head><title>通知先設定 | BMS Monitoring</title></head>
 <body><main>
@@ -6,4 +7,3 @@
   <div class="warning-box">外部警報器は安全 Mock のみです。ローカルコードから物理設備を TCP/SSH 制御しません。</div>
   <section class="panel"><div class="panel-head"><h2>通知ルーティング</h2></div><div class="table-wrap"><table><thead><tr><th>通知先名</th><th>チャネル</th><th>アドレス</th><th>最低級別</th><th>状態</th></tr></thead><tbody><tr th:each="target : ${targets}"><td class="cell-title" th:text="${target.name}">運用</td><td><span class="badge maintenance" th:text="${target.channel}">EMAIL</span></td><td class="mono" th:text="${target.address}">address</td><td th:text="${target.minimumSeverity}">WARNING</td><td><span class="badge normal" th:text="${target.enabled ? '有効' : '無効'}">有効</span></td></tr></tbody></table></div></section>
 </main></body></html>
-

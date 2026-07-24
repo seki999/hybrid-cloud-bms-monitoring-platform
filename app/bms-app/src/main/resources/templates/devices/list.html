@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- 设备列表页：提供条件检索、状态识别与详情入口，分页和过滤结果均由服务端生成以保持大数据量下的稳定性。 -->
 <html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" th:replace="~{fragments/layout :: layout(~{::title}, ~{::main}, 'devices')}">
 <head><title>監視対象機器一覧 | BMS Monitoring</title></head>
 <body><main>
@@ -11,4 +12,3 @@
     <div class="pagination"><span class="subtle" th:text="${'ページ ' + (devices.number + 1) + ' / ' + (devices.totalPages == 0 ? 1 : devices.totalPages)}">1 / 1</span><div class="pagination-links"><a class="page-link" th:classappend="${devices.first} ? 'disabled'" th:href="@{/devices(q=${q},page=${devices.number - 1},sort=${sort},direction=${direction})}">前へ</a><a class="page-link" th:classappend="${devices.last} ? 'disabled'" th:href="@{/devices(q=${q},page=${devices.number + 1},sort=${sort},direction=${direction})}">次へ</a></div></div>
   </section>
 </main></body></html>
-

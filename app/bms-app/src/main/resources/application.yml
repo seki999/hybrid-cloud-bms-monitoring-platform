@@ -1,3 +1,5 @@
+# 应用公共配置：定义服务名、默认 Profile、监控协议入口和可观测性端点等跨环境基线。
+# 密钥均通过环境变量注入并只给本地回退值，生产部署必须显式覆盖。
 spring:
   application:
     name: hybrid-cloud-bms-monitoring-platform

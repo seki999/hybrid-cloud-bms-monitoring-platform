@@ -1,3 +1,5 @@
+# kind 覆盖层复用生产形态的基础清单，只替换本地镜像和开发环境差异。
+# 通过 Kustomize 保持基础资源单一来源，避免本地与部署清单长期漂移。
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:

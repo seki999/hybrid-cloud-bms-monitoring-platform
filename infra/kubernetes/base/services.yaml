@@ -1,3 +1,5 @@
+# 为 Web、Syslog、SNMP 等组件声明稳定的集群访问端点，Pod 变更不会影响调用方地址。
+# 对外暴露方式留给覆盖层或云端负载均衡配置决定，基础层保持环境中立。
 apiVersion: v1
 kind: Service
 metadata: {name: bms-web-app, namespace: bms-monitoring}

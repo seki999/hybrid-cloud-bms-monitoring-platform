@@ -1,3 +1,5 @@
+# 定义 Lambda 包路径、处理器、运行时、网络和环境变量输入，集中表达函数部署契约。
+# enabled 支持在未准备构建产物或 AWS 凭据时仅执行静态配置验证。
 variable "enabled" {
   type    = bool
   default = false

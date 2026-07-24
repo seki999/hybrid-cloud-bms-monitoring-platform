@@ -1,3 +1,5 @@
+# 以默认收紧的网络策略限制命名空间内通信，只开放应用实际需要的入口和依赖路径。
+# 新增组件时必须显式扩展允许规则，避免部署后自动获得横向访问能力。
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata: {name: default-deny, namespace: bms-monitoring}

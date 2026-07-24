@@ -1,3 +1,5 @@
+-- 写入可重复的本地主数据与监控样例，为首次启动、页面展示和集成测试提供一致基线。
+-- 固定标识和幂等约束应与表结构保持一致，生产环境可通过独立流程替换这些演示记录。
 INSERT INTO devices (name, hostname, location, vendor, device_type, status, description, created_at, updated_at) VALUES
 ('東京エッジルーター01', '10.20.1.11', '東京DC / Zone-A', 'Juniper style', 'ROUTER', 'NORMAL', '顧客VPNの主系ルーター', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('東京エッジルーター02', '10.20.1.12', '東京DC / Zone-B', 'Juniper style', 'ROUTER', 'WARNING', '顧客VPNの副系ルーター', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
@@ -33,4 +35,3 @@ INSERT INTO app_users (username, display_name, role, enabled, created_at, update
 
 INSERT INTO audit_logs (actor, action, resource_type, resource_id, detail, created_at, updated_at) VALUES
 ('system', 'DATABASE_INITIALIZED', 'SYSTEM', '1', 'Flywayで設備・監視対象・通知先の初期データを登録', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-

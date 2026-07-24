@@ -1,3 +1,5 @@
+# 定义 VCN、子网、可用域与命名输入，集中描述 OCI 网络地址规划的外部契约。
+# enabled 让本地和单云环境能够解析配置而不触发 OCI 资源创建。
 variable "enabled" {
   type    = bool
   default = false

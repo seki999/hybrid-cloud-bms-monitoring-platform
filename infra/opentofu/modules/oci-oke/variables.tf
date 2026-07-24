@@ -1,3 +1,5 @@
+# 定义 OKE 集群模块的输入契约，包括网络归属、Kubernetes 版本和节点池容量。
+# enabled 开关允许在无 OCI 凭据的本地校验中保持资源图可解析而不创建云资源。
 variable "enabled" {
   type    = bool
   default = false

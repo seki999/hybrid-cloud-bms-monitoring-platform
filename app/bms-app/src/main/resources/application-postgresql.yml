@@ -1,3 +1,5 @@
+# PostgreSQL Profile 配置数据源、JPA 方言和迁移行为，供容器及标准开发环境使用。
+# 连接信息来自环境变量，避免把部署地址或数据库凭据固化在构建产物中。
 spring:
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${POSTGRES_DB:bms_monitoring}
@@ -13,4 +15,3 @@ spring:
       max-lifetime: 1500000
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
-

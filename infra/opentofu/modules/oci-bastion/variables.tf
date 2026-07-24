@@ -1,3 +1,5 @@
+# 定义堡垒服务的目标子网、允许来源和会话时长，集中控制受管运维入口。
+# enabled 支持按环境关闭运维入口，避免开发配置强制创建公网管理面。
 variable "enabled" {
   type    = bool
   default = false

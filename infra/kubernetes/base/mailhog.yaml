@@ -1,3 +1,5 @@
+# 部署仅供非生产环境使用的邮件捕获器，让通知流程可验证而不会向真实收件人发信。
+# Web UI 和 SMTP 端口仅在开发边界内开放，生产覆盖层不应包含该组件。
 apiVersion: apps/v1
 kind: Deployment
 metadata:

@@ -14,6 +14,10 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(DashboardController.class)
+/**
+ * 验证仪表盘路由能够组装视图模型并返回预期模板。
+ * 该层测试关注控制器与 Thymeleaf 的契约，不重复测试统计服务内部实现。
+ */
 class DashboardControllerTest {
     @Autowired MockMvc mvc;
     @MockitoBean DashboardService service;

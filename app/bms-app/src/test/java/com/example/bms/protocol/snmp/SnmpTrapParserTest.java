@@ -7,6 +7,10 @@ import org.snmp4j.PDU;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.VariableBinding;
 
+/**
+ * 验证 SNMP Trap 的标准字段和变量绑定能够转换为平台内部事件。
+ * 测试明确覆盖已知与未知 OID，防止厂商扩展导致整个报文解析失败。
+ */
 class SnmpTrapParserTest {
     private final SnmpTrapParser parser = new SnmpTrapParser();
 
@@ -26,4 +30,3 @@ class SnmpTrapParserTest {
         assertEquals("snmp-1.3.6.1.6.3.1.1.5.3", result.eventKey());
     }
 }
-

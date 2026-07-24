@@ -1,3 +1,5 @@
+# 创建私有 Autonomous Database，并通过传入子网与访问控制限制数据库暴露面。
+# 生命周期参数由环境配置决定，模块不自动放宽网络或备份保护策略。
 resource "oci_database_autonomous_database" "this" {
   count                       = var.enabled ? 1 : 0
   compartment_id              = var.compartment_id

@@ -1,3 +1,5 @@
+# 创建 AWS VPC、公私子网、互联网网关与 Lambda 出站安全组，形成云侧监控执行网络。
+# 默认不为子网实例自动分配公网地址，暴露策略必须由上层架构显式决定。
 resource "aws_vpc" "this" {
   count                = var.enabled ? 1 : 0
   cidr_block           = var.vpc_cidr
