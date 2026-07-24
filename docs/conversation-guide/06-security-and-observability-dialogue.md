@@ -344,3 +344,11 @@ Speaker 2: 去除生产默认秘密、统一 API 认证与限流、接企业 IdP
 1. 将 API Key 移入 Filter 后，如何保留统一的 401 格式？
 2. 哪些指标能最早发现接收器线程仍活着但已不处理消息？
 3. 企业 IdP 接入后，当前三角色如何映射并审计？
+
+启发式思考参考答案
+
+1. Filter 应设置 `status=401`、`Content-Type=application/json`，输出与当前 Controller 相同且不泄露原因的 `{"error":"invalid API key"}`，然后立即结束链路。最好把错误对象与序列化集中到一个小型响应组件或 AuthenticationEntryPoint，避免 Filter 和 Controller 再次分叉；同时保留 correlation ID，让 401 可以在日志中定位，但绝不记录 Key 本身。
+
+2. 仅有 `isRunning=true` 不够，应记录“最后成功接收时间”“最近一分钟接收数”“解析成功/失败数”“处理异常数”和“从接收到数据库提交的延迟”。再从外部定期发送带唯一标识的合成 Syslog/Trap，并检查 Event 是否在时限内出现。线程存活但 `lastReceivedAt` 长时间不变或合成事件缺失，通常比 JVM health 更早暴露端口、NetworkPolicy 或接收循环问题。
+
+3. 将 IdP 的 group/role claim 通过明确白名单映射为 `ROLE_ADMIN`、`ROLE_OPERATOR`、`ROLE_VIEWER`，未知组默认无权限，不能直接信任任意 claim 字符串。审计日志应记录稳定的 subject、issuer、显示名和本次映射角色，并保留关键授权决策；不要记录 access token、ID token 或敏感 claim。角色映射变更也应作为受审计配置管理。

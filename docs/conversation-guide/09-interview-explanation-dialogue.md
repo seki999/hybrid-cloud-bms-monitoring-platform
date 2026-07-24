@@ -275,3 +275,11 @@ Speaker 2: “这个项目的价值不只是用了多少技术，而是把异构
 1. 你能否在白板上从 `IngestApiController` 讲到通知失败？
 2. 哪个设计取舍最能体现你的工程判断？
 3. 如果面试官质疑“混合云只是 PPT”，你会给出哪些代码证据与限制？
+
+启发式思考参考答案
+
+1. 可以这样讲：请求进入 `POST /api/v1/ingest/events`，Controller 用 `ApiKeyService` 和 Bean Validation 校验，再调用 `EventProcessingService.process`；Service 匹配 Device/Target/Rule，计算状态、指纹和 duplicate，保存 `MonitoringEvent`，随后创建或更新 `Alert` 与 `AlertHistory`。非重复事件调用 `NotificationService`，它按目标级别和幂等键过滤；邮件异常被捕获并写入状态为 FAILED 的 `notification_deliveries`，不会把异常直接抛回调用方。还要补充并发下“先查、后发送、再保存”的幂等竞态，这是当前改进点。
+
+2. 最能体现工程判断的是把 Event 与 Alert 分开，并让四种协议 Adapter 汇入一个 `EventProcessingService`。这样既保留每次原始观测，又让告警拥有独立的确认、恢复、关闭和 occurrence 生命周期；同时避免 Syslog、Trap、GET、TCP 各复制一套规则。它选择了模块化单体和本地事务的一致性，代价是同步链和共享数据库需要在真实负载下继续演进。
+
+3. 代码证据包括两个 AWS Lambda 风格 handler、OCI Function 风格通知模块、AWS/OCI OpenTofu 模块、五角色 Kubernetes 清单，以及明确的 HTTPS、Syslog、Trap 与数据库端口设计。限制也必须一起说：OpenTofu 资源默认关闭，仓库没有真实云 plan/apply 证据，NLB/LB listener、backend、证书、DNS、VPN/DRG 和生产 IAM 仍需补充。因此它不是纯 PPT，因为存在可编译代码和部署脚手架；但也不能声称已经完成真实混合云生产部署。

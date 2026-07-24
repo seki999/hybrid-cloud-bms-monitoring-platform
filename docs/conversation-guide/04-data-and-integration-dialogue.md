@@ -339,3 +339,11 @@ Speaker 2: 同步写入链加上单库、单表事件增长。没有压测和保
 1. 事件保留一年后，哪些索引与分区策略最先需要调整？
 2. Oracle 兼容性应怎样加入 CI 而不依赖生产 ADB？
 3. outbox 表应与哪些当前实体处于同一事务？
+
+启发式思考参考答案
+
+1. 首先按 `occurred_at` 评估 `monitoring_events` 的时间分区和保留/归档，因为列表查询、来源趋势和指纹窗口都依赖时间。应复核 `(source, occurred_at)`、`(fingerprint, occurred_at)` 索引的体积与写放大，并让去重查询只扫描近期分区；大范围只按时间检索可评估 BRIN，小窗口和组合条件仍适合 B-tree。调整前必须用实际查询计划和事件增长率验证，不能只因为“数据多”就盲目增加索引。
+
+2. 可以在 CI 的独立 Job 中启动许可允许的临时 Oracle 测试实例，激活 `oracle` profile，执行 Flyway migrate/validate、关键 Repository 查询和 JDBC 报表测试。它不需要生产 ADB Wallet 或生产密码，但仍能发现方言、IDENTITY、时间类型和 SQL 函数差异。若托管 runner 资源不足，可在受控自托管 runner 或定期兼容性流水线执行，并把“临时 Oracle 通过”与“ADB 网络、Wallet、服务名已验证”分开报告。
+
+3. outbox 记录应与产生通知意图的 `Alert` 更新、必要的 `AlertHistory` 和对应 `MonitoringEvent` 处于同一数据库事务。事务只保证“业务状态与待发送意图同时提交”，不应在事务内调用 SMTP。outbox 至少要保存 Alert ID、目标、事件次数或幂等键、payload 版本和状态，之后由独立发布器领取、发送并更新结果。

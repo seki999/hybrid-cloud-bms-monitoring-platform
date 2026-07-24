@@ -291,3 +291,11 @@ Speaker 2: 本地启动依赖和应用，发送一条带有效 Key 的事件，�
 1. 如何把 API Key 检查移到 Filter 又不破坏现有测试？
 2. 多实例下仅靠数据库查询能否稳定避免重复通知？
 3. HTTP 202 与同步数据库事务之间是否存在语义张力？
+
+启发式思考参考答案
+
+1. 可以新增只匹配 `/api/**` 的 `OncePerRequestFilter`，复用现有 `ApiKeyService.isValid`，无效时直接返回与当前一致的 HTTP 401 和 JSON `{"error":"invalid API key"}`，有效时才继续 FilterChain。先为缺失、错误和正确 Key 编写 Filter/集成测试，再删除四个 Controller 中的重复检查；`IngestApiControllerTest` 应导入该 Filter 或改为覆盖完整 Security 配置，确保原有 401 行为没有消失。
+
+2. 不能完全保证。`existsByIdempotencyKey` 与后续发送、保存之间存在竞态：两个实例可能同时查询到不存在，然后都先发送邮件；即使 `notification_deliveries.idempotency_key` 的唯一约束让其中一次 INSERT 失败，重复邮件已经发出。应先以唯一键原子插入 PENDING/outbox 记录，只有成功取得记录的实例才发送，再把状态改为 SENT 或 FAILED。
+
+3. 有。当前 Controller 在返回 202 前已经完成 API Key 校验、事件事务、Alert 更新以及通知调用，实际主要处理是同步完成的；202 通常让调用者理解为“已接受，稍后处理”。可以改为 200/201 来表达同步完成，或者真正把后续工作排入可靠队列并保留 202。继续使用 202 也并非协议错误，但必须在 API 文档中说明接受点和已完成边界。

@@ -288,3 +288,11 @@ Speaker 2: 首先是 `EventProcessingService` 的真实事务并发与重复通�
 1. 怎样在 CI 中明确显示 Testcontainers 是运行还是跳过？
 2. 哪个并发场景最可能让重复通知穿透？
 3. 文档-only PR 应保留哪些昂贵检查？
+
+启发式思考参考答案
+
+1. CI 应先显式检查 Docker Server 可用，再让 PostgreSQL Testcontainers 测试在 CI 模式下“缺 Docker 即失败”，而不是沿用 `disabledWithoutDocker=true` 静默跳过。流水线还可解析 Surefire XML，断言 `PostgresqlContainerTest` 的 tests=1、skipped=0，并把结果作为独立 step 摘要输出。本地开发仍可允许跳过，但 CI 必须使用明确 profile 或属性提升为硬性要求。
+
+2. 最危险的是两个应用实例同时处理同一设备、同一事件次数和同一通知目标：二者都在 `existsByIdempotencyKey` 查询时看到不存在，然后都调用 `mailSender.send`。数据库唯一约束只能阻止第二条 delivery 记录，无法撤回已发出的第二封邮件。应先原子创建 PENDING/outbox 行并通过唯一键争夺发送权。
+
+3. 应保留 Markdown 链接与路径校验、Mermaid 解析、敏感信息扫描、拼写/格式检查和工作流自身语法检查。若能可靠判断变更只在 `docs/**`，Docker 镜像构建、Testcontainers 和完整多模块打包可以放入可选或合并前总门禁；但涉及 README 中的运行命令、部署 YAML 或代码片段时，仍应执行对应配置验证。当前仓库 CI 没有 path filter，因此默认仍会跑完整 Job。

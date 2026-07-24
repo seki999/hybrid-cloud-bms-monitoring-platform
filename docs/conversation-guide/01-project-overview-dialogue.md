@@ -267,3 +267,11 @@ Speaker 2: 记住：它是一个可本地运行的网络监视模块化单体，
 1. 如果只把协议接收器独立扩容，数据库事务会成为怎样的新瓶颈？
 2. 哪些本地默认值必须在共享环境中强制移除？
 3. 如何用最少步骤证明一次 Syslog 最终出现在告警页面？
+
+启发式思考参考答案
+
+1. 接收器副本增加后，`monitoring_events` 的并发 INSERT、指纹时间窗查询、活动 Alert 查找和更新会同时增长。最先出现的通常不是 CPU 不够，而是连接池耗尽、事件索引写放大，以及多个事务争用同一设备和 `alert_key` 的 Alert 行。应先用真实事件率压测 `EventProcessingService.process`，观察连接池、事务时长、锁等待和索引命中，再决定是否做按时间分区、批量写入或拆分异步边界；单纯增加 receiver 副本只会更快地把压力推给数据库。
+
+2. 必须移除或强制覆盖 `POSTGRES_PASSWORD`、`BMS_INGEST_API_KEY`、ADMIN/OPERATOR/VIEWER 密码和 `SNMP_COMMUNITY` 的本地回退值。共享环境还应检查邮件凭据、Oracle Wallet/数据库连接材料和任何云凭据是否完全通过 Secret 注入。更稳妥的做法是让非 local profile 在缺少这些值时启动失败，而不是悄悄使用 `change-me` 或学习用密码。
+
+3. 最短证据链是：启动 PostgreSQL 与应用，使用 `scripts/send-syslog.ps1` 或 `.sh` 发送一条带唯一文本且能匹配种子设备的故障 Syslog，然后依次检查 `/history/syslog` 是否出现 Event、`/alerts` 是否出现对应 Alert，并用应用日志或数据库记录确认同一 `event_key` 和发生时间。发送命令成功只能证明客户端发出了数据；必须同时看到接收器日志、Event 和 Alert 页面，才证明端到端链路成立。

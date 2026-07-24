@@ -291,3 +291,11 @@ Speaker 2: 看三件事：不同协议是否进入同一事件语义；Event、A
 1. 如何防止两个 alert worker 同时处理同一条任务？
 2. 哪个调用最适合先从数据库事务中移出？
 3. 从同镜像多角色迁移到独立服务时，哪些领域对象不应复制？
+
+启发式思考参考答案
+
+1. 当前 `AlertCheckScheduler.checkAlerts` 只是记录最后运行时间的心跳，并没有共享任务可竞争；现阶段最直接的控制是只让 `alert-check-worker` 打开 scheduler 开关。若以后扩展为真正扫描超时目标，多副本必须加入数据库行锁、租约或 leader election，并让每个任务拥有唯一业务键和幂等状态迁移。只靠“希望集群只启动一个 Pod”不够，因为滚动发布期间可能短暂并存两个实例。
+
+2. 最适合先移出的是 `NotificationService` 的物理邮件发送。当前 `EventProcessingService` 在事件和 Alert 处理链中调用通知，外部 SMTP 延迟会放大事务与接收线程耗时。建议在保存 Alert 的同一事务内写入 outbox/通知意图，提交后由独立 worker 重试发送；设备、事件、告警和历史等需要一致提交的数据仍留在原事务。
+
+3. 不应在多个服务中各复制一套可独立写入的 `Device`、`MonitoringEvent`、`Alert` 和 `AlertHistory` JPA 实体与表。迁移时应确定数据所有者，通过稳定 ID、事件契约或只读 API 共享必要信息，而不是双写同一业务事实。尤其 Alert 状态机与历史必须只有一个权威写入方，否则确认、恢复和关闭会产生相互冲突的版本。
