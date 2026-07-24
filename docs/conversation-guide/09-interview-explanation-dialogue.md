@@ -40,17 +40,7 @@ flowchart LR
 - 边界节点主动提醒面试者不要虚构真实云部署和性能数字。
 - 箭头是讲解逻辑，也与主要数据流一致，但不是逐方法时序图。
 
-## 对话式讲解
-
-Speaker 1: 先来一个 3 分钟开场，我该怎么说？
-
-Speaker 2: “这是一个 Java 21 与 Spring Boot 3.5 的网络 BMS 监视平台。它接收 Syslog、SNMP Trap，并执行 SNMP GET 和 TCP connect 检查，把不同协议统一成 MonitoringEvent，再按设备、规则和抑制窗口形成 Alert。页面用 Spring MVC 与 Thymeleaf，数据用 Flyway 管理的 PostgreSQL；仓库还提供 Docker Compose、Kubernetes 五角色部署和默认关闭的 AWS/OCI OpenTofu 模块。”
-
 ## 第一部分：三分钟介绍路线
-
-Speaker 1: 三分钟里每一段大概讲什么，才不会前两分钟都在报技术名？
-
-Speaker 2: 按问题、方案、主链、验证、边界五步走。
 
 ```mermaid
 flowchart LR
@@ -71,19 +61,7 @@ flowchart LR
 - 边界段说明云模块默认关闭、生产性能没有基线。
 - 这张图帮助控制节奏，完整技术关系以前面的全景图为准。
 
-Speaker 1: 还要补一句边界吗？
-
-Speaker 2: 要。“本地应用与测试可运行，云模块是迁移脚手架；我不会把它描述成已经在真实 AWS/OCI 生产环境上线。”这句话很加分，因为工程判断包含证据边界。
-
-Speaker 1: 10 分钟版本怎么展开？
-
-Speaker 2: 按业务问题、架构、代表性调用链、数据模型、安全与可观测性、基础设施、测试、难点和改进九段。每段用一个具体类或文件落地，不要背技术名词菜单。
-
 ## 第二部分：十分钟技术介绍结构
-
-Speaker 1: 九段之间怎样衔接才不像目录朗读？
-
-Speaker 2: 每段用上一个问题引出下一个证据，形成一条因果链。
 
 ```mermaid
 flowchart TB
@@ -109,6 +87,102 @@ flowchart TB
 - 测试段必须提 Testcontainers 可跳过和 CI 不部署生产。
 - 最后一段讲取舍与建议，不把建议说成已实现。
 - 箭头表示面试叙事顺序，不是系统组件依赖。
+
+## 第三部分：面试官追问树
+
+```mermaid
+flowchart TD
+    RootNode["项目介绍"]
+    StackNode["为什么选择 Spring Boot 与模块化单体"]
+    HardNode["最难问题：协议归一与 Trap 监听"]
+    StableNode["如何保证稳定性"]
+    SecurityNode["如何处理安全"]
+    DeployNode["如何部署与扩展"]
+    TestNode["如何测试"]
+    TruthNode["哪些已实现，哪些是脚手架"]
+    EvidenceOneNode["EventProcessingService 与领域测试"]
+    EvidenceTwoNode["0.0.0.0 绑定与 loopback 测试"]
+    EvidenceThreeNode["Actuator、HPA/PDB 与未验证边界"]
+    EvidenceFourNode["SecurityConfig 与本地默认值风险"]
+    EvidenceFiveNode["Compose、Kustomize 与 OpenTofu 默认关闭"]
+
+    RootNode --> StackNode --> EvidenceOneNode
+    RootNode --> HardNode --> EvidenceTwoNode
+    RootNode --> StableNode --> EvidenceThreeNode
+    RootNode --> SecurityNode --> EvidenceFourNode
+    RootNode --> DeployNode --> EvidenceFiveNode
+    RootNode --> TestNode
+    RootNode --> TruthNode
+```
+
+### 图表说明
+
+- 每个追问都连接到可打开的代码或配置证据。
+- Trap 监听难点对应 `SnmpTrapReceiver` 与 `SnmpTrapReceiverTest`。
+- 稳定性回答必须同时讲现有控制与生产缺口。
+- 部署回答区分 Compose、Kustomize 静态验证和真实云状态。
+- “哪些是真的”是必答边界，不能用项目名称代替证据。
+
+## 第四部分：亮点、限制与下一步
+
+```mermaid
+flowchart LR
+    HighlightOneNode["亮点：四协议统一事件模型"]
+    LimitOneNode["限制：同步处理与 UDP 丢包边界"]
+    NextOneNode["下一步：负载测试与可靠缓冲"]
+    HighlightTwoNode["亮点：三角色与容器安全"]
+    LimitTwoNode["限制：内存用户与开发默认秘密"]
+    NextTwoNode["下一步：企业 IdP 与 Secret 管理"]
+    HighlightThreeNode["亮点：同镜像五角色部署"]
+    LimitThreeNode["限制：共享数据库与 receiver 单副本"]
+    NextThreeNode["下一步：故障演练后按指标演进"]
+
+    HighlightOneNode --> LimitOneNode --> NextOneNode
+    HighlightTwoNode --> LimitTwoNode --> NextTwoNode
+    HighlightThreeNode --> LimitThreeNode --> NextThreeNode
+```
+
+### 图表说明
+
+- 三个亮点分别有源码、SecurityConfig 和 Kubernetes YAML 证据。
+- 限制来自当前同步链、认证实现和副本配置。
+- 下一步均标为建议，没有画成已完成状态。
+- 图的目的不是贬低项目，而是说明工程取舍与演进依据。
+- 未选择具体消息中间件或云产品，避免在没有需求证据时过度设计。
+
+## 本章涉及的关键文件
+
+| 文件 | 作用 | 在图中的节点 |
+|---|---|---|
+| `pom.xml` | 技术栈和模块事实 | 六模块与 Java 21 |
+| `app/bms-app/src/main/java/com/example/bms/event/EventProcessingService.java` | 代表性架构与调用链 | 核心主链 |
+| `app/bms-app/src/main/java/com/example/bms/security/SecurityConfig.java` | 安全事实和边界 | 安全追问证据 |
+| `.github/workflows/ci.yml` | 验证范围 | 测试与 CI 证据 |
+| `infra/opentofu/` | 云脚手架与未部署边界 | 真假边界节点 |
+
+---
+
+对话复制区
+
+Speaker 1: 先来一个 3 分钟开场，我该怎么说？
+
+Speaker 2: “这是一个 Java 21 与 Spring Boot 3.5 的网络 BMS 监视平台。它接收 Syslog、SNMP Trap，并执行 SNMP GET 和 TCP connect 检查，把不同协议统一成 MonitoringEvent，再按设备、规则和抑制窗口形成 Alert。页面用 Spring MVC 与 Thymeleaf，数据用 Flyway 管理的 PostgreSQL；仓库还提供 Docker Compose、Kubernetes 五角色部署和默认关闭的 AWS/OCI OpenTofu 模块。”
+
+Speaker 1: 三分钟里每一段大概讲什么，才不会前两分钟都在报技术名？
+
+Speaker 2: 按问题、方案、主链、验证、边界五步走。
+
+Speaker 1: 还要补一句边界吗？
+
+Speaker 2: 要。“本地应用与测试可运行，云模块是迁移脚手架；我不会把它描述成已经在真实 AWS/OCI 生产环境上线。”这句话很加分，因为工程判断包含证据边界。
+
+Speaker 1: 10 分钟版本怎么展开？
+
+Speaker 2: 按业务问题、架构、代表性调用链、数据模型、安全与可观测性、基础设施、测试、难点和改进九段。每段用一个具体类或文件落地，不要背技术名词菜单。
+
+Speaker 1: 九段之间怎样衔接才不像目录朗读？
+
+Speaker 2: 每段用上一个问题引出下一个证据，形成一条因果链。
 
 Speaker 1: 业务问题怎么讲？
 
@@ -158,44 +232,9 @@ Speaker 1: 面试官问“哪些是真的，哪些是模拟的”呢？
 
 Speaker 2: 真的实现了主应用、协议接收、Socket/SNMP 客户端、数据模型、页面、测试和本地容器；simulator 与 demo data 是学习输入；Lambda/Function 核心逻辑可测试；真实 AWS/OCI 资源和生产流量没有部署证据。
 
-## 第三部分：面试官追问树
-
 Speaker 1: 面试官最可能从哪些词继续追问？
 
 Speaker 2: 通常从选择、稳定、安全、部署、测试和真假边界六个方向钻下去。
-
-```mermaid
-flowchart TD
-    RootNode["项目介绍"]
-    StackNode["为什么选择 Spring Boot 与模块化单体"]
-    HardNode["最难问题：协议归一与 Trap 监听"]
-    StableNode["如何保证稳定性"]
-    SecurityNode["如何处理安全"]
-    DeployNode["如何部署与扩展"]
-    TestNode["如何测试"]
-    TruthNode["哪些已实现，哪些是脚手架"]
-    EvidenceOneNode["EventProcessingService 与领域测试"]
-    EvidenceTwoNode["0.0.0.0 绑定与 loopback 测试"]
-    EvidenceThreeNode["Actuator、HPA/PDB 与未验证边界"]
-    EvidenceFourNode["SecurityConfig 与本地默认值风险"]
-    EvidenceFiveNode["Compose、Kustomize 与 OpenTofu 默认关闭"]
-
-    RootNode --> StackNode --> EvidenceOneNode
-    RootNode --> HardNode --> EvidenceTwoNode
-    RootNode --> StableNode --> EvidenceThreeNode
-    RootNode --> SecurityNode --> EvidenceFourNode
-    RootNode --> DeployNode --> EvidenceFiveNode
-    RootNode --> TestNode
-    RootNode --> TruthNode
-```
-
-### 图表说明
-
-- 每个追问都连接到可打开的代码或配置证据。
-- Trap 监听难点对应 `SnmpTrapReceiver` 与 `SnmpTrapReceiverTest`。
-- 稳定性回答必须同时讲现有控制与生产缺口。
-- 部署回答区分 Compose、Kustomize 静态验证和真实云状态。
-- “哪些是真的”是必答边界，不能用项目名称代替证据。
 
 Speaker 1: 如果问性能？
 
@@ -213,36 +252,9 @@ Speaker 1: 下一步改进怎么排优先级？
 
 Speaker 2: 先生产 Secret/身份与统一 API 认证，再可靠异步通知，然后真实环境压测与故障演练；依据指标决定是否拆服务。这个顺序比“先上 Kafka 再说”更有证据。
 
-## 第四部分：亮点、限制与下一步
-
 Speaker 1: 最后总结时，怎样同时讲亮点和不足又不显得自我拆台？
 
 Speaker 2: 把每个亮点连接到它暴露的下一步，说明你理解取舍。
-
-```mermaid
-flowchart LR
-    HighlightOneNode["亮点：四协议统一事件模型"]
-    LimitOneNode["限制：同步处理与 UDP 丢包边界"]
-    NextOneNode["下一步：负载测试与可靠缓冲"]
-    HighlightTwoNode["亮点：三角色与容器安全"]
-    LimitTwoNode["限制：内存用户与开发默认秘密"]
-    NextTwoNode["下一步：企业 IdP 与 Secret 管理"]
-    HighlightThreeNode["亮点：同镜像五角色部署"]
-    LimitThreeNode["限制：共享数据库与 receiver 单副本"]
-    NextThreeNode["下一步：故障演练后按指标演进"]
-
-    HighlightOneNode --> LimitOneNode --> NextOneNode
-    HighlightTwoNode --> LimitTwoNode --> NextTwoNode
-    HighlightThreeNode --> LimitThreeNode --> NextThreeNode
-```
-
-### 图表说明
-
-- 三个亮点分别有源码、SecurityConfig 和 Kubernetes YAML 证据。
-- 限制来自当前同步链、认证实现和副本配置。
-- 下一步均标为建议，没有画成已完成状态。
-- 图的目的不是贬低项目，而是说明工程取舍与演进依据。
-- 未选择具体消息中间件或云产品，避免在没有需求证据时过度设计。
 
 Speaker 1: 面试中最忌讳什么？
 
@@ -252,23 +264,13 @@ Speaker 1: 最后一句如何收尾？
 
 Speaker 2: “这个项目的价值不只是用了多少技术，而是把异构监视信号变成可追踪的事件与告警，并把本地可运行实现、容器化演进和生产待办清楚分层。”然后等面试官追问具体代码。
 
-## 本章涉及的关键文件
-
-| 文件 | 作用 | 在图中的节点 |
-|---|---|---|
-| `pom.xml` | 技术栈和模块事实 | 六模块与 Java 21 |
-| `app/bms-app/src/main/java/com/example/bms/event/EventProcessingService.java` | 代表性架构与调用链 | 核心主链 |
-| `app/bms-app/src/main/java/com/example/bms/security/SecurityConfig.java` | 安全事实和边界 | 安全追问证据 |
-| `.github/workflows/ci.yml` | 验证范围 | 测试与 CI 证据 |
-| `infra/opentofu/` | 云脚手架与未部署边界 | 真假边界节点 |
-
-## 核心知识点回顾
+核心知识点回顾
 
 1. 面试表达要从业务问题落到具体代码。
 2. 3 分钟讲主线，10 分钟讲取舍、验证和边界。
 3. 个人贡献、生产部署和性能数字都不能脱离证据。
 
-### 启发式思考
+启发式思考
 
 1. 你能否在白板上从 `IngestApiController` 讲到通知失败？
 2. 哪个设计取舍最能体现你的工程判断？

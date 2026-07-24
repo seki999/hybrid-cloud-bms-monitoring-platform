@@ -49,17 +49,7 @@ flowchart TB
 - OIDC、mTLS 和集中 Trace 明确标记为“暂未发现实现”，不是当前能力。
 - 图表示应用安全边界，不证明外部 WAF、SIEM 或企业 IdP 已部署。
 
-## 对话式讲解
-
-Speaker 1: 登录账号从数据库的 `app_users` 表读取吗？
-
-Speaker 2: 不是。`SecurityConfig.userDetailsService` 创建三个内存用户，密码来自配置并用 BCrypt cost 12 编码。`app_users` 表目前用于运维页面展示，不是认证源。
-
 ## 第一部分：身份认证流程
-
-Speaker 1: 那浏览器登录到底经过哪些对象？
-
-Speaker 2: 认证用户源在内存中，成功后建立 Session；数据库中的 `app_users` 不在这条时序里。
 
 ```mermaid
 sequenceDiagram
@@ -95,19 +85,7 @@ sequenceDiagram
 - `app_users` 表未出现在图中，因为当前认证代码不读取它。
 - 企业 IdP/OIDC 是生产建议，不属于此当前登录时序。
 
-Speaker 1: 这适合生产吗？
-
-Speaker 2: 适合本地复现，不适合企业身份治理。代码注释也建议生产替换为 OIDC 或企业 IdP，同时保留角色映射。
-
-Speaker 1: 三个角色怎样分权？
-
-Speaker 2: ADMIN 可访问用户、规则和设备写页面；其他已认证用户可看大部分页面。告警操作还应结合 Controller 或方法授权与测试确认，不能只靠菜单隐藏。
-
 ## 第二部分：权限校验
-
-Speaker 1: 能把 URL 权限判断画成决策树吗？
-
-Speaker 2: 可以，但要严格按 `requestMatchers` 的顺序理解。
 
 ```mermaid
 flowchart TD
@@ -142,6 +120,134 @@ flowchart TD
 - 用户、规则和设备写页面要求 ADMIN；其他页面要求已认证。
 - `SecurityIntegrationTest` 覆盖匿名跳转、VIEWER 拒绝与 ADMIN 允许。
 - 菜单可见性不是授权依据，真正边界在服务端 FilterChain。
+
+## 第三部分：日志、指标与缺失的 Trace
+
+```mermaid
+flowchart LR
+    HttpNode["HTTP 请求"]
+    FilterNode["RequestCorrelationFilter"]
+    MdcNode["MDC requestId / correlationId"]
+    AppLogNode["应用日志"]
+    LogbackNode["logback-spring.xml"]
+    ActuatorNode["Spring Boot Actuator"]
+    MicrometerNode["Micrometer Prometheus registry"]
+    PromEndpointNode["/actuator/prometheus"]
+    TraceNode["OpenTelemetry Trace：仓库中暂未发现实现"]
+    CollectorNode["集中日志/Prometheus 后端：部署未确认"]
+
+    HttpNode --> FilterNode --> MdcNode --> AppLogNode --> LogbackNode
+    ActuatorNode --> MicrometerNode --> PromEndpointNode
+    LogbackNode -.->|"需要外部采集"| CollectorNode
+    PromEndpointNode -.->|"需要外部抓取"| CollectorNode
+    FilterNode -.->|"当前没有 span 导出"| TraceNode
+```
+
+### 图表说明
+
+- correlation ID 来自 `RequestCorrelationFilter`，格式由 `logback-spring.xml` 使用。
+- Actuator 与 Prometheus registry 依赖在 `app/bms-app/pom.xml` 中存在。
+- 应用暴露 Prometheus 端点，但仓库不能证明外部 Prometheus 已抓取。
+- OpenTelemetry Trace 明确标记为未发现实现。
+- 虚线表示需要外部运行环境或当前缺失路径。
+
+## 第四部分：告警与健康信号
+
+```mermaid
+flowchart TB
+    DeviceSignalNode["设备 Syslog / Trap / 主动检查"]
+    EventProcessNode["EventProcessingService"]
+    BusinessAlertNode[("alerts")]
+    NotifyNode["NotificationService"]
+    ReceiverStateNode["Syslog / Trap receiver 运行状态"]
+    SchedulerStateNode["AlertCheckScheduler lastRun"]
+    HealthNode["ReceiverHealthIndicators"]
+    ActuatorNode["/actuator/health"]
+    ExternalMonitorNode["外部监控平台：部署未确认"]
+
+    DeviceSignalNode --> EventProcessNode --> BusinessAlertNode --> NotifyNode
+    ReceiverStateNode --> HealthNode
+    SchedulerStateNode --> HealthNode
+    HealthNode --> ActuatorNode
+    ActuatorNode -.->|"需外部轮询"| ExternalMonitorNode
+```
+
+### 图表说明
+
+- 上半链是设备业务告警，下半链是应用健康信号，二者不应混为同一表。
+- `ReceiverHealthIndicators` 读取 receiver 运行状态和 scheduler 最后运行状态。
+- Actuator endpoint 是当前实现；外部监控抓取与告警规则未由仓库证明。
+- `NotificationService` 处理业务 Alert，不等同于 Kubernetes Probe。
+- 图中没有虚构 PagerDuty、Datadog 或云监控实例。
+
+## 第五部分：故障定位流程
+
+```mermaid
+flowchart TD
+    SymptomNode["页面、API 或事件流异常"]
+    HealthNode{"readiness / liveness 状态"}
+    CorrelationNode["取得 correlation ID"]
+    LogNode["检查对应 Spring / Receiver 日志"]
+    DbNode{"数据库连接或 Flyway 异常"}
+    ReceiverNode{"Receiver last state 异常"}
+    ExternalNode{"SNMP Agent / SMTP / 网络异常"}
+    DbActionNode["检查 PostgreSQL health、连接池与迁移"]
+    ReceiverActionNode["检查端口绑定、线程与 NetworkPolicy"]
+    ExternalActionNode["检查目标可达性、超时与凭据"]
+    UnknownNode["仓库中暂未实现分布式 Trace，继续用日志与指标缩小"]
+
+    SymptomNode --> HealthNode
+    HealthNode --> CorrelationNode --> LogNode
+    LogNode --> DbNode
+    DbNode -->|"是"| DbActionNode
+    DbNode -->|"否"| ReceiverNode
+    ReceiverNode -->|"是"| ReceiverActionNode
+    ReceiverNode -->|"否"| ExternalNode
+    ExternalNode -->|"是"| ExternalActionNode
+    ExternalNode -->|"仍不明确"| UnknownNode
+```
+
+### 图表说明
+
+- 起点是实际症状，先看 Probe/Actuator，再用 correlation ID 缩小日志。
+- 数据库、Receiver 与外部协议目标分别有不同检查路径。
+- `ReceiverHealthIndicators` 能辅助判断接收器与 scheduler，但不能替代端到端发送验证。
+- 分布式 Trace 明确标为未实现，因此不把它列成当前排障工具。
+- 具体恢复动作仍应遵循 `docs/operations/runbook.md` 并避免破坏数据。
+
+## 本章涉及的关键文件
+
+| 文件 | 作用 | 在图中的节点 |
+|---|---|---|
+| `app/bms-app/src/main/java/com/example/bms/security/SecurityConfig.java` | 表单登录、RBAC、CSRF 和安全 Header | FilterChain、用户与角色判断 |
+| `app/bms-app/src/main/java/com/example/bms/security/ApiKeyService.java` | API Key 比较 | API Key 分支 |
+| `app/bms-app/src/main/java/com/example/bms/security/RequestCorrelationFilter.java` | 请求关联 ID | Filter、MDC |
+| `app/bms-app/src/main/java/com/example/bms/infrastructure/ReceiverHealthIndicators.java` | 接收器健康信息 | Receiver Health |
+| `app/bms-app/src/main/resources/logback-spring.xml` | 日志格式 | Logback 节点 |
+
+---
+
+对话复制区
+
+Speaker 1: 登录账号从数据库的 `app_users` 表读取吗？
+
+Speaker 2: 不是。`SecurityConfig.userDetailsService` 创建三个内存用户，密码来自配置并用 BCrypt cost 12 编码。`app_users` 表目前用于运维页面展示，不是认证源。
+
+Speaker 1: 那浏览器登录到底经过哪些对象？
+
+Speaker 2: 认证用户源在内存中，成功后建立 Session；数据库中的 `app_users` 不在这条时序里。
+
+Speaker 1: 这适合生产吗？
+
+Speaker 2: 适合本地复现，不适合企业身份治理。代码注释也建议生产替换为 OIDC 或企业 IdP，同时保留角色映射。
+
+Speaker 1: 三个角色怎样分权？
+
+Speaker 2: ADMIN 可访问用户、规则和设备写页面；其他已认证用户可看大部分页面。告警操作还应结合 Controller 或方法授权与测试确认，不能只靠菜单隐藏。
+
+Speaker 1: 能把 URL 权限判断画成决策树吗？
+
+Speaker 2: 可以，但要严格按 `requestMatchers` 的顺序理解。
 
 Speaker 1: CSRF 为什么只忽略 API？
 
@@ -187,39 +293,9 @@ Speaker 1: 日志如何串起一次请求？
 
 Speaker 2: `RequestCorrelationFilter` 为 HTTP 请求创建或传递 correlation ID，`logback-spring.xml` 将它纳入日志上下文。它帮助在单体日志中追踪一次请求，不等于分布式 tracing。
 
-## 第三部分：日志、指标与缺失的 Trace
-
 Speaker 1: 三种可观测数据分别流向哪里？
 
 Speaker 2: 当前仓库实现日志与 Prometheus 指标；Trace 只画成明确缺口。
-
-```mermaid
-flowchart LR
-    HttpNode["HTTP 请求"]
-    FilterNode["RequestCorrelationFilter"]
-    MdcNode["MDC requestId / correlationId"]
-    AppLogNode["应用日志"]
-    LogbackNode["logback-spring.xml"]
-    ActuatorNode["Spring Boot Actuator"]
-    MicrometerNode["Micrometer Prometheus registry"]
-    PromEndpointNode["/actuator/prometheus"]
-    TraceNode["OpenTelemetry Trace：仓库中暂未发现实现"]
-    CollectorNode["集中日志/Prometheus 后端：部署未确认"]
-
-    HttpNode --> FilterNode --> MdcNode --> AppLogNode --> LogbackNode
-    ActuatorNode --> MicrometerNode --> PromEndpointNode
-    LogbackNode -.->|"需要外部采集"| CollectorNode
-    PromEndpointNode -.->|"需要外部抓取"| CollectorNode
-    FilterNode -.->|"当前没有 span 导出"| TraceNode
-```
-
-### 图表说明
-
-- correlation ID 来自 `RequestCorrelationFilter`，格式由 `logback-spring.xml` 使用。
-- Actuator 与 Prometheus registry 依赖在 `app/bms-app/pom.xml` 中存在。
-- 应用暴露 Prometheus 端点，但仓库不能证明外部 Prometheus 已抓取。
-- OpenTelemetry Trace 明确标记为未发现实现。
-- 虚线表示需要外部运行环境或当前缺失路径。
 
 Speaker 1: 项目有哪些 Metrics？
 
@@ -229,38 +305,9 @@ Speaker 1: 健康检查能看到接收器吗？
 
 Speaker 2: `ReceiverHealthIndicators` 把 Syslog、Trap 和 scheduler 状态接入健康体系。这样 Web 活着但 UDP 线程死掉时，不会只得到一张虚假的绿灯。
 
-## 第四部分：告警与健康信号
-
 Speaker 1: 业务告警和系统健康告警是一回事吗？
 
 Speaker 2: 不是。业务 Event/Alert 处理设备故障，Actuator Health 反映应用组件状态。
-
-```mermaid
-flowchart TB
-    DeviceSignalNode["设备 Syslog / Trap / 主动检查"]
-    EventProcessNode["EventProcessingService"]
-    BusinessAlertNode[("alerts")]
-    NotifyNode["NotificationService"]
-    ReceiverStateNode["Syslog / Trap receiver 运行状态"]
-    SchedulerStateNode["AlertCheckScheduler lastRun"]
-    HealthNode["ReceiverHealthIndicators"]
-    ActuatorNode["/actuator/health"]
-    ExternalMonitorNode["外部监控平台：部署未确认"]
-
-    DeviceSignalNode --> EventProcessNode --> BusinessAlertNode --> NotifyNode
-    ReceiverStateNode --> HealthNode
-    SchedulerStateNode --> HealthNode
-    HealthNode --> ActuatorNode
-    ActuatorNode -.->|"需外部轮询"| ExternalMonitorNode
-```
-
-### 图表说明
-
-- 上半链是设备业务告警，下半链是应用健康信号，二者不应混为同一表。
-- `ReceiverHealthIndicators` 读取 receiver 运行状态和 scheduler 最后运行状态。
-- Actuator endpoint 是当前实现；外部监控抓取与告警规则未由仓库证明。
-- `NotificationService` 处理业务 Alert，不等同于 Kubernetes Probe。
-- 图中没有虚构 PagerDuty、Datadog 或云监控实例。
 
 Speaker 1: liveness 和 readiness 有什么实战区别？
 
@@ -278,66 +325,21 @@ Speaker 1: 数据库挂了会怎样定位？
 
 Speaker 2: 先看 readiness 和 Spring 日志中的 correlation/SQL 异常，再看 PostgreSQL health、连接与 Flyway 状态。Kubernetes 可能停止给 Web 发流量，但不会自动修复数据库数据。
 
-## 第五部分：故障定位流程
-
 Speaker 1: 值班时我该从哪个信号开始，才不会在日志海里游泳？
 
 Speaker 2: 从用户症状到健康、日志、依赖逐层缩小，最后区分数据库、接收器和外部目标。
-
-```mermaid
-flowchart TD
-    SymptomNode["页面、API 或事件流异常"]
-    HealthNode{"readiness / liveness 状态"}
-    CorrelationNode["取得 correlation ID"]
-    LogNode["检查对应 Spring / Receiver 日志"]
-    DbNode{"数据库连接或 Flyway 异常"}
-    ReceiverNode{"Receiver last state 异常"}
-    ExternalNode{"SNMP Agent / SMTP / 网络异常"}
-    DbActionNode["检查 PostgreSQL health、连接池与迁移"]
-    ReceiverActionNode["检查端口绑定、线程与 NetworkPolicy"]
-    ExternalActionNode["检查目标可达性、超时与凭据"]
-    UnknownNode["仓库中暂未实现分布式 Trace，继续用日志与指标缩小"]
-
-    SymptomNode --> HealthNode
-    HealthNode --> CorrelationNode --> LogNode
-    LogNode --> DbNode
-    DbNode -->|"是"| DbActionNode
-    DbNode -->|"否"| ReceiverNode
-    ReceiverNode -->|"是"| ReceiverActionNode
-    ReceiverNode -->|"否"| ExternalNode
-    ExternalNode -->|"是"| ExternalActionNode
-    ExternalNode -->|"仍不明确"| UnknownNode
-```
-
-### 图表说明
-
-- 起点是实际症状，先看 Probe/Actuator，再用 correlation ID 缩小日志。
-- 数据库、Receiver 与外部协议目标分别有不同检查路径。
-- `ReceiverHealthIndicators` 能辅助判断接收器与 scheduler，但不能替代端到端发送验证。
-- 分布式 Trace 明确标为未实现，因此不把它列成当前排障工具。
-- 具体恢复动作仍应遵循 `docs/operations/runbook.md` 并避免破坏数据。
 
 Speaker 1: 最优先的安全改进是什么？
 
 Speaker 2: 去除生产默认秘密、统一 API 认证与限流、接企业 IdP、限制 SNMP 来源并规划 v3，然后把审计与日志送到受保护的集中平台。顺序应由威胁模型与部署暴露面决定。
 
-## 本章涉及的关键文件
-
-| 文件 | 作用 | 在图中的节点 |
-|---|---|---|
-| `app/bms-app/src/main/java/com/example/bms/security/SecurityConfig.java` | 表单登录、RBAC、CSRF 和安全 Header | FilterChain、用户与角色判断 |
-| `app/bms-app/src/main/java/com/example/bms/security/ApiKeyService.java` | API Key 比较 | API Key 分支 |
-| `app/bms-app/src/main/java/com/example/bms/security/RequestCorrelationFilter.java` | 请求关联 ID | Filter、MDC |
-| `app/bms-app/src/main/java/com/example/bms/infrastructure/ReceiverHealthIndicators.java` | 接收器健康信息 | Receiver Health |
-| `app/bms-app/src/main/resources/logback-spring.xml` | 日志格式 | Logback 节点 |
-
-## 核心知识点回顾
+核心知识点回顾
 
 1. 当前登录是内存用户，数据库用户表不是认证源。
 2. API Key、CSRF、CSP、输入校验和容器安全各保护不同边界。
 3. 现有可观测性是日志、指标和健康检查，不包含完整分布式 tracing。
 
-### 启发式思考
+启发式思考
 
 1. 将 API Key 移入 Filter 后，如何保留统一的 401 格式？
 2. 哪些指标能最早发现接收器线程仍活着但已不处理消息？

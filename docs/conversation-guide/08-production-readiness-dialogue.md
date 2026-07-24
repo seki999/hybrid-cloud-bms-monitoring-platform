@@ -53,29 +53,7 @@ flowchart LR
 - 应用高可用、数据高可用和通知可靠性是三个独立问题。
 - 演进箭头表示建议顺序，真实方案需要负载、RPO/RTO 与预算决策。
 
-## 对话式讲解
-
-Speaker 1: 代码能跑，为什么还不能直接上生产？
-
-Speaker 2: 能跑只证明一条路径成立。生产还要求身份治理、容量、备份、故障恢复、网络边界、Secret、升级回滚、值班和 SLO，这些不能由一个本地启动截图替代。
-
-Speaker 1: 当前最明确的生产就绪优点是什么？
-
-Speaker 2: 有结构化迁移、事务边界、角色权限、审计、健康端点、非 root 容器、资源限制、NetworkPolicy、PDB/HPA、CI 和运维 runbook。它不是空白脚手架。
-
-Speaker 1: 最明显的阻塞项呢？
-
-Speaker 2: 本地默认秘密、内存用户、v2c、同步通知、示例单副本数据库，以及没有真实云/集群和负载验证。每一项都需要环境证据才能关闭。
-
-Speaker 1: 数据库不可用时会怎样？
-
-Speaker 2: 事务写入失败，API 或接收器记录异常，readiness 可能转失败。Event 不会被数据库接受；UDP 发送方通常也不会自动重试，所以需要上游可靠性或接收缓冲设计。
-
 ## 第一部分：单点故障
-
-Speaker 1: 当前最需要圈红的单点在哪里？
-
-Speaker 2: 数据库、两个协议接收器和同步通知路径最明显。Web 两副本并不会自动消除它们。
 
 ```mermaid
 flowchart TD
@@ -109,23 +87,7 @@ flowchart TD
 - 同步通知可能影响事务时长，具体失败语义需结合 `NotificationService`。
 - 这张图分析当前单点，不表示生产环境已经发生这些故障。
 
-Speaker 1: 邮件服务不可用会拖垮事件写入吗？
-
-Speaker 2: 当前通知在事件事务链上，具体失败处理要看 `NotificationService`。生产上更稳妥的是写 outbox 后异步重试，并为永久失败建立死信和人工补偿。
-
-Speaker 1: 容器崩溃 Kubernetes 会恢复吗？
-
-Speaker 2: Deployment 会尝试重建 Pod，liveness 也可触发重启。但若原因是坏配置、数据库宕机或所有节点资源不足，重启只会循环，不会创造奇迹。
-
-Speaker 1: PDB 和两副本能保证 Web 高可用吗？
-
-Speaker 2: 只提高自愿维护时的可用性。还要反亲和、跨可用域节点、数据库高可用、LB 健康检查和容量。当前清单不能证明这些外部条件。
-
 ## 第二部分：建议的高可用设计，当前仓库尚未完全实现
-
-Speaker 1: 如果要补全高可用，目标拓扑应该是什么样？
-
-Speaker 2: 下图只表达建议能力，不绑定具体云产品承诺。
 
 ```mermaid
 flowchart TB
@@ -166,23 +128,7 @@ flowchart TB
 - receiver 多副本必须验证 UDP 分配、重复包与源地址语义。
 - 实施前需补反亲和、拓扑约束、容量和故障演练。
 
-Speaker 1: UDP 接收器只有一副本危险吗？
-
-Speaker 2: 有单点和维护中断风险。扩到多副本前又要确认 LoadBalancer 的 UDP 分配、源地址、重复包和有状态接收行为。副本数不是越大越自动安全。
-
-Speaker 1: 如何定义 SLO？
-
-Speaker 2: 可从事件接收到持久化延迟、告警生成延迟、通知成功率、协议丢弃率、页面可用性和恢复时间定义。仓库没有现成生产 SLO，必须结合业务等级制定。
-
-Speaker 1: 容量规划需要哪些数据？
-
-Speaker 2: 每秒 Syslog/Trap 数、消息大小、设备数、规则数、活跃告警、保留期、查询并发和通知扇出。没有这些数据就报一个吞吐数字，是把猜测穿上西装。
-
 ## 第三部分：扩缩容边界
-
-Speaker 1: HPA 看到 CPU 70% 后，是不是整个系统一起扩？
-
-Speaker 2: 当前 HPA 只指向 `bms-web-app`，数据库和接收器不会跟着自动扩。
 
 ```mermaid
 flowchart LR
@@ -210,19 +156,7 @@ flowchart LR
 - metrics-server 是 HPA 生效前提，仓库不证明集群已安装。
 - 生产扩容应结合事件率、数据库写入和延迟，而不只看 Web CPU。
 
-Speaker 1: 数据保留和归档现在实现了吗？
-
-Speaker 2: 未发现自动分区、TTL 或归档任务。事件和审计会持续增长，生产需要保留政策、分区/归档、索引维护和合法删除流程。
-
-Speaker 1: 备份只要给 PVC 做快照吗？
-
-Speaker 2: 不够。要验证可恢复的一致性备份、RPO/RTO、恢复到新环境、Flyway 版本兼容和 Secret/配置恢复。托管数据库通常比示例单 Pod 更合适。
-
 ## 第四部分：建议的灾难恢复流程，当前仓库尚未实现
-
-Speaker 1: 真正的恢复演练要经过哪些步骤？
-
-Speaker 2: 备份只有成功恢复过，才从“希望”升级为“证据”。
 
 ```mermaid
 flowchart LR
@@ -252,15 +186,7 @@ flowchart LR
 - RPO/RTO 必须来自演练测量，仓库中没有可引用的生产目标。
 - Secret、DNS、镜像和网络配置也应纳入完整恢复，但图聚焦数据主线。
 
-Speaker 1: 发布与回滚怎么做？
-
-Speaker 2: 当前 CI 构建但未发现生产 CD。应使用不可变镜像 digest、分阶段发布、数据库向后兼容迁移和明确回滚条件；Flyway 已执行的破坏性迁移不能靠回滚镜像自动撤销。
-
 ## 第五部分：建议的发布与回滚，当前仓库尚未实现
-
-Speaker 1: 没有 CD 时，怎样画发布图才不冒充现状？
-
-Speaker 2: 把整条线标成建议，并在回滚节点强调数据库迁移约束。
 
 ```mermaid
 flowchart TD
@@ -292,6 +218,92 @@ flowchart TD
 - 发布门禁应包含健康、协议输入和页面冒烟，而不只看 Pod Running。
 - 仓库中未发现生产 CD 工作流，因此没有虚构平台或部署命令。
 
+## 本章涉及的关键文件
+
+| 文件 | 作用 | 在图中的节点 |
+|---|---|---|
+| `docs/operations/runbook.md` | 运维与故障处理入口 | 故障与恢复流程 |
+| `docs/security/threat-model.md` | 威胁和控制 | 生产安全边界 |
+| `app/bms-app/src/main/java/com/example/bms/notification/NotificationService.java` | 当前通知边界 | 同步通知、建议 outbox |
+| `infra/kubernetes/base/availability.yaml` | HPA、PDB 与 Ingress | 扩缩容与可用性 |
+| `infra/opentofu/environments/production/README.md` | 生产环境前置条件 | 建议生产架构 |
+
+---
+
+对话复制区
+
+Speaker 1: 代码能跑，为什么还不能直接上生产？
+
+Speaker 2: 能跑只证明一条路径成立。生产还要求身份治理、容量、备份、故障恢复、网络边界、Secret、升级回滚、值班和 SLO，这些不能由一个本地启动截图替代。
+
+Speaker 1: 当前最明确的生产就绪优点是什么？
+
+Speaker 2: 有结构化迁移、事务边界、角色权限、审计、健康端点、非 root 容器、资源限制、NetworkPolicy、PDB/HPA、CI 和运维 runbook。它不是空白脚手架。
+
+Speaker 1: 最明显的阻塞项呢？
+
+Speaker 2: 本地默认秘密、内存用户、v2c、同步通知、示例单副本数据库，以及没有真实云/集群和负载验证。每一项都需要环境证据才能关闭。
+
+Speaker 1: 数据库不可用时会怎样？
+
+Speaker 2: 事务写入失败，API 或接收器记录异常，readiness 可能转失败。Event 不会被数据库接受；UDP 发送方通常也不会自动重试，所以需要上游可靠性或接收缓冲设计。
+
+Speaker 1: 当前最需要圈红的单点在哪里？
+
+Speaker 2: 数据库、两个协议接收器和同步通知路径最明显。Web 两副本并不会自动消除它们。
+
+Speaker 1: 邮件服务不可用会拖垮事件写入吗？
+
+Speaker 2: 当前通知在事件事务链上，具体失败处理要看 `NotificationService`。生产上更稳妥的是写 outbox 后异步重试，并为永久失败建立死信和人工补偿。
+
+Speaker 1: 容器崩溃 Kubernetes 会恢复吗？
+
+Speaker 2: Deployment 会尝试重建 Pod，liveness 也可触发重启。但若原因是坏配置、数据库宕机或所有节点资源不足，重启只会循环，不会创造奇迹。
+
+Speaker 1: PDB 和两副本能保证 Web 高可用吗？
+
+Speaker 2: 只提高自愿维护时的可用性。还要反亲和、跨可用域节点、数据库高可用、LB 健康检查和容量。当前清单不能证明这些外部条件。
+
+Speaker 1: 如果要补全高可用，目标拓扑应该是什么样？
+
+Speaker 2: 下图只表达建议能力，不绑定具体云产品承诺。
+
+Speaker 1: UDP 接收器只有一副本危险吗？
+
+Speaker 2: 有单点和维护中断风险。扩到多副本前又要确认 LoadBalancer 的 UDP 分配、源地址、重复包和有状态接收行为。副本数不是越大越自动安全。
+
+Speaker 1: 如何定义 SLO？
+
+Speaker 2: 可从事件接收到持久化延迟、告警生成延迟、通知成功率、协议丢弃率、页面可用性和恢复时间定义。仓库没有现成生产 SLO，必须结合业务等级制定。
+
+Speaker 1: 容量规划需要哪些数据？
+
+Speaker 2: 每秒 Syslog/Trap 数、消息大小、设备数、规则数、活跃告警、保留期、查询并发和通知扇出。没有这些数据就报一个吞吐数字，是把猜测穿上西装。
+
+Speaker 1: HPA 看到 CPU 70% 后，是不是整个系统一起扩？
+
+Speaker 2: 当前 HPA 只指向 `bms-web-app`，数据库和接收器不会跟着自动扩。
+
+Speaker 1: 数据保留和归档现在实现了吗？
+
+Speaker 2: 未发现自动分区、TTL 或归档任务。事件和审计会持续增长，生产需要保留政策、分区/归档、索引维护和合法删除流程。
+
+Speaker 1: 备份只要给 PVC 做快照吗？
+
+Speaker 2: 不够。要验证可恢复的一致性备份、RPO/RTO、恢复到新环境、Flyway 版本兼容和 Secret/配置恢复。托管数据库通常比示例单 Pod 更合适。
+
+Speaker 1: 真正的恢复演练要经过哪些步骤？
+
+Speaker 2: 备份只有成功恢复过，才从“希望”升级为“证据”。
+
+Speaker 1: 发布与回滚怎么做？
+
+Speaker 2: 当前 CI 构建但未发现生产 CD。应使用不可变镜像 digest、分阶段发布、数据库向后兼容迁移和明确回滚条件；Flyway 已执行的破坏性迁移不能靠回滚镜像自动撤销。
+
+Speaker 1: 没有 CD 时，怎样画发布图才不冒充现状？
+
+Speaker 2: 把整条线标成建议，并在回滚节点强调数据库迁移约束。
+
 Speaker 1: 监控告警系统自身如何避免“监控盲区”？
 
 Speaker 2: 将接收率、解析失败、最后消息时间、队列/事务延迟、通知失败和健康端点送到独立监控平台，并从外部做合成探测。不能只让系统自己宣布自己健康。
@@ -320,23 +332,13 @@ Speaker 1: 如果只能先做三件事？
 
 Speaker 2: 第一移除生产默认秘密并统一身份；第二把通知改成可靠异步边界；第三建立真实 PostgreSQL/Kubernetes 的负载与故障基线。它们同时降低安全、数据和运维风险。
 
-## 本章涉及的关键文件
-
-| 文件 | 作用 | 在图中的节点 |
-|---|---|---|
-| `docs/operations/runbook.md` | 运维与故障处理入口 | 故障与恢复流程 |
-| `docs/security/threat-model.md` | 威胁和控制 | 生产安全边界 |
-| `app/bms-app/src/main/java/com/example/bms/notification/NotificationService.java` | 当前通知边界 | 同步通知、建议 outbox |
-| `infra/kubernetes/base/availability.yaml` | HPA、PDB 与 Ingress | 扩缩容与可用性 |
-| `infra/opentofu/environments/production/README.md` | 生产环境前置条件 | 建议生产架构 |
-
-## 核心知识点回顾
+核心知识点回顾
 
 1. 生产就绪需要运行证据，不是配置文件数量。
 2. 数据库、通知和 UDP 输入的失败语义不同。
 3. 应以 SLO、容量与演练推动演进，而不是先行微服务化。
 
-### 启发式思考
+启发式思考
 
 1. 哪条 SLO 最能代表网络运维人员的真实体验？
 2. 如何设计一次不丢数据的数据库维护窗口？

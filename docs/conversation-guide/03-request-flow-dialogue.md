@@ -51,29 +51,7 @@ sequenceDiagram
 - `alt` 与 `opt` 分别表达真实失败分支和重复抑制条件。
 - 当前链路没有消息队列，因此时序图不虚构异步 broker。
 
-## 对话式讲解
-
-Speaker 1: 我们先跟一条最完整的 API 请求，入口在哪里？
-
-Speaker 2: `POST /api/v1/ingest/events`。`IngestApiController.ingest` 读取 `X-BMS-API-Key`，校验 `IngestRequest`，再调用 `EventProcessingService.process`。
-
-Speaker 1: Spring Security 不是已经保护 API 了吗？
-
-Speaker 2: URL 配置对 `/api/**` 是 `permitAll`，并忽略 CSRF，因为调用方不是浏览器表单。真正的 API Key 检查在每个 Controller 方法里由 `ApiKeyService.isValid` 完成。
-
-Speaker 1: Key 不对会发生什么？
-
-Speaker 2: Controller 返回 HTTP 401 和通用错误 `invalid API key`。代码不会把正确 Key 或请求 Header 写进响应。
-
-Speaker 1: JSON 字段不合法呢？
-
-Speaker 2: `@Valid` 触发 `IngestRequest` 的约束；TCP 与 SNMP 命令还限制端口、超时和重试范围。`GlobalExceptionHandler` 将校验和业务错误转换为受控响应。
-
 ## 第一部分：错误处理分支
-
-Speaker 1: 参数错误、业务错误和找不到资源最后走的是同一条路吗？
-
-Speaker 2: 都由统一异常处理边界接住，但错误来源和响应语义不同。
 
 ```mermaid
 flowchart TD
@@ -113,15 +91,7 @@ flowchart TD
 - `GlobalExceptionHandler` 是 MVC/API 的统一受控错误边界。
 - 图未为每个异常硬写状态码；具体映射应以处理器方法为准。
 
-Speaker 1: 通过校验以后，第一步查什么？
-
-Speaker 2: `process` 用 host 按 hostname 或 name 匹配 `Device`，再按事件来源找到启用的 `MonitoringTarget`，最后按 metric 名匹配 `MonitoringRule`。
-
 ## 第二部分：Controller、Service 与 Repository
-
-Speaker 1: 时序图告诉我先后顺序，能再看一眼类之间谁依赖谁吗？
-
-Speaker 2: 可以。这里把写入链真正使用的 Repository 展开，避免把 Spring Data 当成一个黑盒盒子。
 
 ```mermaid
 classDiagram
@@ -166,6 +136,82 @@ classDiagram
 - Repository 调用由 Spring Data JPA 实现，箭头不表示 Repository 彼此调用。
 - 为保持图可读，Target、History、TCP Result Repository 没有展开，但仍在真实构造器中。
 
+## 第三部分：被动协议线程的调用
+
+```mermaid
+sequenceDiagram
+    actor Device as 网络设备
+    participant Receiver as SyslogReceiver
+    participant Parser as SyslogParser
+    participant Process as EventProcessingService
+    participant Database as PostgreSQL
+
+    alt UDP 消息
+        Device->>Receiver: UDP datagram / 5514
+    else TCP 消息
+        Device->>Receiver: TCP line / 5514
+    end
+    Receiver->>Parser: parse(rawMessage)
+    alt 格式可解析
+        Parser-->>Receiver: ParsedSyslog
+    else 格式异常
+        Parser-->>Receiver: 保留 rawMessage 的降级结果
+    end
+    Receiver->>Process: process(IngestRequest)
+    Process->>Database: JPA 事务写 Event 与可选 Alert
+    Database-->>Process: 提交结果
+```
+
+### 图表说明
+
+- UDP datagram 与 TCP 行分帧来自 `SyslogReceiver` 的两条接收路径。
+- `SyslogParser` 对 RFC3164/5424 风格消息解析，并在坏格式时保留原文。
+- Receiver 线程直接调用 `EventProcessingService`，仓库中没有 Kafka consumer。
+- 数据库箭头表示同一事务内的多次 JPA 操作，不是一条手写 SQL。
+- 该线程模型已由代码确认；真实高并发吞吐尚未通过负载测试确认。
+
+## 本章涉及的关键文件
+
+| 文件 | 作用 | 在图中的节点 |
+|---|---|---|
+| `app/bms-app/src/main/java/com/example/bms/web/IngestApiController.java` | JSON、TCP Ping 和 SNMP GET API | `IngestApiController` |
+| `app/bms-app/src/main/java/com/example/bms/event/EventProcessingService.java` | 事件、告警和通知主调用链 | `EventProcessingService` |
+| `app/bms-app/src/main/java/com/example/bms/web/DeviceController.java` | 设备表单流程 | MVC Controller |
+| `app/bms-app/src/main/java/com/example/bms/device/DeviceService.java` | 设备事务与审计 | Service 层 |
+| `app/bms-app/src/main/java/com/example/bms/web/GlobalExceptionHandler.java` | 统一错误映射 | 错误处理节点 |
+
+---
+
+对话复制区
+
+Speaker 1: 我们先跟一条最完整的 API 请求，入口在哪里？
+
+Speaker 2: `POST /api/v1/ingest/events`。`IngestApiController.ingest` 读取 `X-BMS-API-Key`，校验 `IngestRequest`，再调用 `EventProcessingService.process`。
+
+Speaker 1: Spring Security 不是已经保护 API 了吗？
+
+Speaker 2: URL 配置对 `/api/**` 是 `permitAll`，并忽略 CSRF，因为调用方不是浏览器表单。真正的 API Key 检查在每个 Controller 方法里由 `ApiKeyService.isValid` 完成。
+
+Speaker 1: Key 不对会发生什么？
+
+Speaker 2: Controller 返回 HTTP 401 和通用错误 `invalid API key`。代码不会把正确 Key 或请求 Header 写进响应。
+
+Speaker 1: JSON 字段不合法呢？
+
+Speaker 2: `@Valid` 触发 `IngestRequest` 的约束；TCP 与 SNMP 命令还限制端口、超时和重试范围。`GlobalExceptionHandler` 将校验和业务错误转换为受控响应。
+
+Speaker 1: 参数错误、业务错误和找不到资源最后走的是同一条路吗？
+
+Speaker 2: 都由统一异常处理边界接住，但错误来源和响应语义不同。
+
+Speaker 1: 通过校验以后，第一步查什么？
+
+Speaker 2: `process` 用 host 按 hostname 或 name 匹配 `Device`，再按事件来源找到启用的 `MonitoringTarget`，最后按 metric 名匹配 `MonitoringRule`。
+
+Speaker 1: 时序图告诉我先后顺序，能再看一眼类之间谁依赖谁吗？
+
+Speaker 2: 可以。这里把写入链真正使用的 Repository 展开，避免把 Spring Data 当成一个黑盒盒子。
+
 Speaker 1: 找不到设备会拒绝吗？
 
 Speaker 2: 不会。事件仍以空 device/target 关联保存。这样未知来源的事实不会丢，但也不会凭空创建设备或告警关联。
@@ -206,43 +252,9 @@ Speaker 1: 被动 Syslog 走 Controller 吗？
 
 Speaker 2: 不走 HTTP Controller。`SyslogReceiver` 从 UDP datagram 或 TCP 行读取文本，`SyslogParser` 转成结构化结果，再组装 `IngestRequest` 调同一个 Service。
 
-## 第三部分：被动协议线程的调用
-
 Speaker 1: 它不走 HTTP，那“请求生命周期”还怎么画？
 
 Speaker 2: 把网络消息当成起点即可。接收循环在独立线程中运行，但业务处理仍是同步方法调用，不是消息队列消费。
-
-```mermaid
-sequenceDiagram
-    actor Device as 网络设备
-    participant Receiver as SyslogReceiver
-    participant Parser as SyslogParser
-    participant Process as EventProcessingService
-    participant Database as PostgreSQL
-
-    alt UDP 消息
-        Device->>Receiver: UDP datagram / 5514
-    else TCP 消息
-        Device->>Receiver: TCP line / 5514
-    end
-    Receiver->>Parser: parse(rawMessage)
-    alt 格式可解析
-        Parser-->>Receiver: ParsedSyslog
-    else 格式异常
-        Parser-->>Receiver: 保留 rawMessage 的降级结果
-    end
-    Receiver->>Process: process(IngestRequest)
-    Process->>Database: JPA 事务写 Event 与可选 Alert
-    Database-->>Process: 提交结果
-```
-
-### 图表说明
-
-- UDP datagram 与 TCP 行分帧来自 `SyslogReceiver` 的两条接收路径。
-- `SyslogParser` 对 RFC3164/5424 风格消息解析，并在坏格式时保留原文。
-- Receiver 线程直接调用 `EventProcessingService`，仓库中没有 Kafka consumer。
-- 数据库箭头表示同一事务内的多次 JPA 操作，不是一条手写 SQL。
-- 该线程模型已由代码确认；真实高并发吞吐尚未通过负载测试确认。
 
 Speaker 1: 浏览器创建设备的链路呢？
 
@@ -268,23 +280,13 @@ Speaker 1: 如何端到端证明这条链？
 
 Speaker 2: 本地启动依赖和应用，发送一条带有效 Key 的事件，检查 202 与 eventId，再打开事件和告警页面，同时查看数据库或日志中的 correlation ID。测试覆盖切片，完整运行验证仍要依赖本机服务状态。
 
-## 本章涉及的关键文件
-
-| 文件 | 作用 | 在图中的节点 |
-|---|---|---|
-| `app/bms-app/src/main/java/com/example/bms/web/IngestApiController.java` | JSON、TCP Ping 和 SNMP GET API | `IngestApiController` |
-| `app/bms-app/src/main/java/com/example/bms/event/EventProcessingService.java` | 事件、告警和通知主调用链 | `EventProcessingService` |
-| `app/bms-app/src/main/java/com/example/bms/web/DeviceController.java` | 设备表单流程 | MVC Controller |
-| `app/bms-app/src/main/java/com/example/bms/device/DeviceService.java` | 设备事务与审计 | Service 层 |
-| `app/bms-app/src/main/java/com/example/bms/web/GlobalExceptionHandler.java` | 统一错误映射 | 错误处理节点 |
-
-## 核心知识点回顾
+核心知识点回顾
 
 1. API Key、Bean Validation、事务和受控错误分别承担不同边界。
 2. 重复事件仍保存，只抑制通知。
 3. 页面写操作和协议输入最终都把业务规则放在 Service，而不是模板或解析器。
 
-### 启发式思考
+启发式思考
 
 1. 如何把 API Key 检查移到 Filter 又不破坏现有测试？
 2. 多实例下仅靠数据库查询能否稳定避免重复通知？

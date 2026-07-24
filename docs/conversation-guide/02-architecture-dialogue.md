@@ -58,29 +58,7 @@ flowchart TB
 - 图中未加入 Kafka、Redis 或独立前端，因为仓库中未发现这些实现。
 - `NotificationService` 是当前同步调用节点；异步 outbox 只会在建议图中出现。
 
-## 对话式讲解
-
-Speaker 1: 先给我一张不用画图的架构图。
-
-Speaker 2: 设备通过 Syslog 或 Trap 进入接收器；API 或主动检查产生同一种 `IngestRequest`；`EventProcessingService` 匹配设备、目标和规则，写 Event，再创建或更新 Alert，并触发通知；MVC 查询数据库后由 Thymeleaf输出页面。
-
-Speaker 1: 现在有图了，我注意到所有写入都汇到 `EventProcessingService`。
-
-Speaker 2: 对。汇合箭头是架构重点：它让协议差异停在 Adapter 层，领域规则不会复制四份。
-
-Speaker 1: 这算微服务吗？
-
-Speaker 2: 源码和 Maven 依赖表明它不是微服务集合，而是模块化单体。Kubernetes 的五个 Deployment 使用同一镜像，通过 `BMS_COMPONENT` 和 receiver/scheduler 开关承担不同职责。
-
-Speaker 1: 五种职责具体是什么？
-
-Speaker 2: `bms-web-app`、Syslog receiver、SNMP Trap receiver、monitoring worker 和 alert-check worker。Web 对外提供页面/API，两个 receiver 接协议，worker 执行主动检查或告警扫描。
-
 ## 第一部分：当前部署结构
-
-Speaker 1: 同一镜像到底怎样变成五个角色？
-
-Speaker 2: 由 Deployment 中的 `BMS_COMPONENT` 和 receiver/scheduler 开关决定。下图是当前 Kubernetes 清单，不是建议架构。
 
 ```mermaid
 flowchart TB
@@ -118,23 +96,7 @@ flowchart TB
 - 所有角色依赖同一 PostgreSQL 服务，因此数据库仍是共享故障域。
 - Kustomize 可渲染这些资源，但本轮没有据此声称真实 OKE 集群已部署。
 
-Speaker 1: 同一镜像扮演五个角色有什么好处？
-
-Speaker 2: 构建物一致，迁移简单，领域模型也不需要跨服务复制。像同一套工具箱发给不同班组，每个班组只打开自己需要的工具。
-
-Speaker 1: 坏处呢？
-
-Speaker 2: 镜像更大，角色隔离依赖配置正确，部署时也要谨防同时打开重复调度器。生产中应让开关互斥，并对接收器和 worker 分别设置资源与扩容策略。
-
-Speaker 1: `EventProcessingService` 为什么像交通枢纽？
-
-Speaker 2: 它集中处理协议无关的规则：设备匹配、阈值、严重度、SHA-256 指纹、重复窗口、Event 保存、Alert 状态和通知。协议 Adapter 只解析，避免四套协议各写一套告警逻辑。
-
 ## 第二部分：应用模块依赖
-
-Speaker 1: 能把这个“交通枢纽”的类依赖画得更像代码吗？
-
-Speaker 2: 下面的类名和方法都来自当前 Java 文件，箭头表示构造器依赖或方法调用。
 
 ```mermaid
 classDiagram
@@ -177,19 +139,7 @@ classDiagram
 - 类图只显示主依赖，设备、目标、规则和历史 Repository 为避免过载没有展开。
 - 图中没有虚构 DTO 转换器或消息队列。
 
-Speaker 1: 它一次处理用了多少个 Repository？
-
-Speaker 2: 代码注入了设备、目标、规则、事件、告警、告警历史和 TCP 结果等 Repository，再调用 `NotificationService`。这些操作由 `@Transactional` 包围，核心数据库状态要么一起提交，要么回滚。
-
-Speaker 1: 通知也在事务里，安全吗？
-
-Speaker 2: 当前实现便于保证“保存告警后再通知”的顺序，但外部邮件变慢会拖长事务。生产改进通常是事务内写 outbox，事务外可靠投递；这属于建议，不是当前已实现功能。
-
 ## 第三部分：内部通信与演进边界
-
-Speaker 1: 当前通信和建议改进放在一张图里，会不会让人误以为都做好了？
-
-Speaker 2: 所以要用实线与虚线明确分区。右侧标题已经写明“当前仓库尚未完全实现”。
 
 ```mermaid
 flowchart LR
@@ -219,6 +169,68 @@ flowchart LR
 - 右侧虚线是生产改进建议；仓库中没有 `notification_outbox` 表或发布 Worker。
 - 建议箭头表达“事务内记录、事务外重试”，不是当前运行路径。
 - 图中没有指定 Kafka 或 RabbitMQ，因为中间件选择需要后续需求证据。
+
+## 本章涉及的关键文件
+
+| 文件 | 作用 | 在图中的节点 |
+|---|---|---|
+| `app/bms-app/src/main/java/com/example/bms/event/EventProcessingService.java` | 协议无关的事件与告警事务编排 | `EventProcessingService` |
+| `app/bms-app/src/main/java/com/example/bms/protocol/syslog/SyslogReceiver.java` | UDP/TCP Syslog 生命周期 | `Receiver`、Syslog 输入 |
+| `app/bms-app/src/main/java/com/example/bms/protocol/snmp/SnmpTrapReceiver.java` | SNMP Trap 生命周期 | `Receiver`、Trap 输入 |
+| `infra/kubernetes/base/bms-components.yaml` | 五种逻辑角色 | 五个 Deployment |
+| `infra/opentofu/environments/dev/main.tf` | AWS/OCI 模块组合入口 | 混合云建议边界 |
+
+---
+
+对话复制区
+
+Speaker 1: 先给我一张不用画图的架构图。
+
+Speaker 2: 设备通过 Syslog 或 Trap 进入接收器；API 或主动检查产生同一种 `IngestRequest`；`EventProcessingService` 匹配设备、目标和规则，写 Event，再创建或更新 Alert，并触发通知；MVC 查询数据库后由 Thymeleaf输出页面。
+
+Speaker 1: 现在有图了，我注意到所有写入都汇到 `EventProcessingService`。
+
+Speaker 2: 对。汇合箭头是架构重点：它让协议差异停在 Adapter 层，领域规则不会复制四份。
+
+Speaker 1: 这算微服务吗？
+
+Speaker 2: 源码和 Maven 依赖表明它不是微服务集合，而是模块化单体。Kubernetes 的五个 Deployment 使用同一镜像，通过 `BMS_COMPONENT` 和 receiver/scheduler 开关承担不同职责。
+
+Speaker 1: 五种职责具体是什么？
+
+Speaker 2: `bms-web-app`、Syslog receiver、SNMP Trap receiver、monitoring worker 和 alert-check worker。Web 对外提供页面/API，两个 receiver 接协议，worker 执行主动检查或告警扫描。
+
+Speaker 1: 同一镜像到底怎样变成五个角色？
+
+Speaker 2: 由 Deployment 中的 `BMS_COMPONENT` 和 receiver/scheduler 开关决定。下图是当前 Kubernetes 清单，不是建议架构。
+
+Speaker 1: 同一镜像扮演五个角色有什么好处？
+
+Speaker 2: 构建物一致，迁移简单，领域模型也不需要跨服务复制。像同一套工具箱发给不同班组，每个班组只打开自己需要的工具。
+
+Speaker 1: 坏处呢？
+
+Speaker 2: 镜像更大，角色隔离依赖配置正确，部署时也要谨防同时打开重复调度器。生产中应让开关互斥，并对接收器和 worker 分别设置资源与扩容策略。
+
+Speaker 1: `EventProcessingService` 为什么像交通枢纽？
+
+Speaker 2: 它集中处理协议无关的规则：设备匹配、阈值、严重度、SHA-256 指纹、重复窗口、Event 保存、Alert 状态和通知。协议 Adapter 只解析，避免四套协议各写一套告警逻辑。
+
+Speaker 1: 能把这个“交通枢纽”的类依赖画得更像代码吗？
+
+Speaker 2: 下面的类名和方法都来自当前 Java 文件，箭头表示构造器依赖或方法调用。
+
+Speaker 1: 它一次处理用了多少个 Repository？
+
+Speaker 2: 代码注入了设备、目标、规则、事件、告警、告警历史和 TCP 结果等 Repository，再调用 `NotificationService`。这些操作由 `@Transactional` 包围，核心数据库状态要么一起提交，要么回滚。
+
+Speaker 1: 通知也在事务里，安全吗？
+
+Speaker 2: 当前实现便于保证“保存告警后再通知”的顺序，但外部邮件变慢会拖长事务。生产改进通常是事务内写 outbox，事务外可靠投递；这属于建议，不是当前已实现功能。
+
+Speaker 1: 当前通信和建议改进放在一张图里，会不会让人误以为都做好了？
+
+Speaker 2: 所以要用实线与虚线明确分区。右侧标题已经写明“当前仓库尚未完全实现”。
 
 Speaker 1: 为什么接收器实现 `SmartLifecycle`？
 
@@ -268,23 +280,13 @@ Speaker 1: 怎样判断这个架构设计是否成功？
 
 Speaker 2: 看三件事：不同协议是否进入同一事件语义；Event、Alert、通知是否保持可追踪；角色拆分后是否仍能独立健康检查和扩容。仓库已提供结构，生产答案仍需要负载和故障演练。
 
-## 本章涉及的关键文件
-
-| 文件 | 作用 | 在图中的节点 |
-|---|---|---|
-| `app/bms-app/src/main/java/com/example/bms/event/EventProcessingService.java` | 协议无关的事件与告警事务编排 | `EventProcessingService` |
-| `app/bms-app/src/main/java/com/example/bms/protocol/syslog/SyslogReceiver.java` | UDP/TCP Syslog 生命周期 | `Receiver`、Syslog 输入 |
-| `app/bms-app/src/main/java/com/example/bms/protocol/snmp/SnmpTrapReceiver.java` | SNMP Trap 生命周期 | `Receiver`、Trap 输入 |
-| `infra/kubernetes/base/bms-components.yaml` | 五种逻辑角色 | 五个 Deployment |
-| `infra/opentofu/environments/dev/main.tf` | AWS/OCI 模块组合入口 | 混合云建议边界 |
-
-## 核心知识点回顾
+核心知识点回顾
 
 1. 源码是模块化单体，Kubernetes 通过配置把同一镜像拆为逻辑角色。
 2. 协议解析与领域判断分离，核心事务集中在 `EventProcessingService`。
 3. 混合云是代码与 IaC 支持的演进方向，不是当前部署事实。
 
-### 启发式思考
+启发式思考
 
 1. 如何防止两个 alert worker 同时处理同一条任务？
 2. 哪个调用最适合先从数据库事务中移出？

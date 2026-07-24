@@ -93,25 +93,7 @@ erDiagram
 - 为保持可读性，图中省略了无外键的 `notification_targets`、`audit_logs` 与 `app_users`。
 - 图表示当前已实现数据模型，不包含建议中的 outbox、分区或归档表。
 
-## 对话式讲解
-
-Speaker 1: 数据库里到底有多少张业务表？
-
-Speaker 2: `V1__create_bms_schema.sql` 创建 11 张：devices、monitoring_targets、monitoring_rules、monitoring_events、alerts、alert_history、notification_targets、notification_deliveries、tcp_ping_results、audit_logs 和 app_users。
-
-Speaker 1: 为什么设备、目标和规则要拆三张表？
-
-Speaker 2: 设备是资产；目标描述对该设备用哪种协议、主机、端口或 OID 监视；规则描述指标阈值与抑制窗口。拆开后同一设备能有多种检查，而不把所有协议字段塞进一行。
-
-Speaker 1: Event 和 Alert 再讲一次区别。
-
-Speaker 2: Event 是不可忽略的一次观测，Alert 是围绕设备和 alertKey 聚合的当前问题。`monitoring_events` 有原文、来源、状态、指纹和发生时间；`alerts` 有当前状态、次数、首次与最近发生时间。
-
 ## 第一部分：从输入到数据表
-
-Speaker 1: ER 图讲关系，能不能再画数据到底流向哪里？
-
-Speaker 2: 可以。四种输入先统一成 `IngestRequest`，再由同一 Service 决定写哪些表。
 
 ```mermaid
 flowchart LR
@@ -146,6 +128,125 @@ flowchart LR
 - `alert_history` 只在创建或状态变化等生命周期节点写入。
 - TCP 检查另存 `tcp_ping_results`；本地 API 用协议标记避免重复保存。
 - 箭头表示当前同步数据流，仓库中没有 Redis、Kafka 或 Elasticsearch。
+
+## 第二部分：协议数据转换
+
+```mermaid
+flowchart TD
+    RawNode["原始 Syslog 文本或 SNMP varbind"]
+    ParseNode{"Parser 能否识别字段"}
+    ParsedNode["ParsedSyslog 或 ParsedSnmpTrap"]
+    FallbackNode["保留 rawMessage 的降级结果"]
+    RequestNode["构造 IngestRequest"]
+    MatchNode{"是否匹配 Device 与 Rule"}
+    EventNode["保存 MonitoringEvent"]
+    AlertNode["创建、升级或恢复 Alert"]
+    UnknownNode["仅保存无设备关联的 Event"]
+
+    RawNode --> ParseNode
+    ParseNode -->|"是"| ParsedNode --> RequestNode
+    ParseNode -->|"否"| FallbackNode --> RequestNode
+    RequestNode --> MatchNode
+    MatchNode -->|"是"| EventNode --> AlertNode
+    MatchNode -->|"否"| UnknownNode
+```
+
+### 图表说明
+
+- Parser 对应 `SyslogParser` 与 `SnmpTrapParser`，输出类均真实存在。
+- 解析失败不等于丢弃，测试确认 Syslog 原文会保留。
+- `IngestRequest` 是协议无关 DTO，之后才做设备、目标与规则匹配。
+- 未知设备不会被自动创建，事件以空关联保存。
+- “创建、升级或恢复”由 `EventProcessingService.updateAlert` 决定。
+
+## 第三部分：外部系统集成时序
+
+```mermaid
+sequenceDiagram
+    actor Caller as 脚本或 Lambda
+    participant Api as IngestApiController
+    participant Client as SnmpV2cQueryClient
+    participant Agent as SNMP Agent
+    participant Process as EventProcessingService
+    participant Db as PostgreSQL
+
+    Caller->>Api: POST /api/v1/monitoring/snmp-get
+    Api->>Client: get(SnmpGetRequest)
+    Client->>Agent: SNMPv2c GET / UDP
+    alt Agent 成功响应
+        Agent-->>Client: OID value
+        Client-->>Api: SnmpGetResult success
+    else 超时或协议错误
+        Client-->>Api: SnmpGetResult errorType
+    end
+    Api->>Process: process(IngestRequest)
+    Process->>Db: 保存 Event 与可选 Alert
+    Api-->>Caller: HTTP 200 + SnmpGetResult
+```
+
+### 图表说明
+
+- API 路径和方法来自 `IngestApiController.snmpGet`。
+- `SnmpV2cQueryClient` 通过 SNMP4J 对目标 Agent 发送 UDP GET。
+- 成功与失败都会转成 `IngestRequest`，从而留下事件事实。
+- community 只用于请求，不在图中传给数据库，也不应写入日志。
+- 真实 AWS Lambda 部署与目标网络可达性尚未由本轮运行验证。
+
+## 第四部分：当前消息生产与消费边界
+
+```mermaid
+flowchart LR
+    SocketNode["UDP/TCP Socket"]
+    ReceiverNode["SyslogReceiver 或 SnmpTrapReceiver"]
+    RequestNode["内存对象 IngestRequest"]
+    ConsumerNode["EventProcessingService.process"]
+    TransactionNode["数据库事务"]
+    BrokerNode["Kafka / RabbitMQ：仓库中暂未发现实现"]
+
+    SocketNode -->|"网络消息"| ReceiverNode
+    ReceiverNode -->|"构造对象"| RequestNode
+    RequestNode -->|"同步方法调用"| ConsumerNode
+    ConsumerNode --> TransactionNode
+    ReceiverNode -.->|"当前没有此路径"| BrokerNode
+```
+
+### 图表说明
+
+- “生产者”是 Receiver，“消费者”是 `EventProcessingService`，对象不离开 JVM。
+- 实线对应当前代码；指向 broker 的虚线明确标为不存在路径。
+- 同步调用简化一致性，但接收线程会受数据库和通知耗时影响。
+- UDP 在进入应用前不提供传输确认，数据库事务无法弥补网络层丢包。
+- 若未来引入 broker，需要重新定义顺序、重复、重试和死信语义。
+
+## 本章涉及的关键文件
+
+| 文件 | 作用 | 在图中的节点 |
+|---|---|---|
+| `app/bms-app/src/main/resources/db/migration/V1__create_bms_schema.sql` | 11 张表与索引 | ER 图所有表 |
+| `app/bms-app/src/main/resources/db/migration/V2__seed_master_data.sql` | 本地主数据 | Device、Target 与 Rule 基线 |
+| `app/bms-app/src/main/java/com/example/bms/event/MonitoringEvent.java` | 事件实体 | `MONITORING_EVENTS` |
+| `app/bms-app/src/main/java/com/example/bms/alert/Alert.java` | 告警聚合实体 | `ALERTS` |
+| `app/bms-app/src/main/java/com/example/bms/reporting/ProtocolStatisticsJdbcRepository.java` | JDBC 统计查询 | 数据库查询边界 |
+
+---
+
+对话复制区
+
+Speaker 1: 数据库里到底有多少张业务表？
+
+Speaker 2: `V1__create_bms_schema.sql` 创建 11 张：devices、monitoring_targets、monitoring_rules、monitoring_events、alerts、alert_history、notification_targets、notification_deliveries、tcp_ping_results、audit_logs 和 app_users。
+
+Speaker 1: 为什么设备、目标和规则要拆三张表？
+
+Speaker 2: 设备是资产；目标描述对该设备用哪种协议、主机、端口或 OID 监视；规则描述指标阈值与抑制窗口。拆开后同一设备能有多种检查，而不把所有协议字段塞进一行。
+
+Speaker 1: Event 和 Alert 再讲一次区别。
+
+Speaker 2: Event 是不可忽略的一次观测，Alert 是围绕设备和 alertKey 聚合的当前问题。`monitoring_events` 有原文、来源、状态、指纹和发生时间；`alerts` 有当前状态、次数、首次与最近发生时间。
+
+Speaker 1: ER 图讲关系，能不能再画数据到底流向哪里？
+
+Speaker 2: 可以。四种输入先统一成 `IngestRequest`，再由同一 Service 决定写哪些表。
 
 Speaker 1: 告警历史为什么不能只看 Alert 的更新时间？
 
@@ -187,39 +288,9 @@ Speaker 1: Syslog 解析失败会丢数据吗？
 
 Speaker 2: `SyslogParserTest.preservesMalformedRawMessage` 明确验证格式异常仍保留原文。解析字段可能降级，但接收线程不应因为一条坏消息退出。
 
-## 第二部分：协议数据转换
-
 Speaker 1: “解析、归一、聚合”听起来像三个相似动词，实际边界在哪里？
 
 Speaker 2: 这张转换图把每一步输入与输出写开。
-
-```mermaid
-flowchart TD
-    RawNode["原始 Syslog 文本或 SNMP varbind"]
-    ParseNode{"Parser 能否识别字段"}
-    ParsedNode["ParsedSyslog 或 ParsedSnmpTrap"]
-    FallbackNode["保留 rawMessage 的降级结果"]
-    RequestNode["构造 IngestRequest"]
-    MatchNode{"是否匹配 Device 与 Rule"}
-    EventNode["保存 MonitoringEvent"]
-    AlertNode["创建、升级或恢复 Alert"]
-    UnknownNode["仅保存无设备关联的 Event"]
-
-    RawNode --> ParseNode
-    ParseNode -->|"是"| ParsedNode --> RequestNode
-    ParseNode -->|"否"| FallbackNode --> RequestNode
-    RequestNode --> MatchNode
-    MatchNode -->|"是"| EventNode --> AlertNode
-    MatchNode -->|"否"| UnknownNode
-```
-
-### 图表说明
-
-- Parser 对应 `SyslogParser` 与 `SnmpTrapParser`，输出类均真实存在。
-- 解析失败不等于丢弃，测试确认 Syslog 原文会保留。
-- `IngestRequest` 是协议无关 DTO，之后才做设备、目标与规则匹配。
-- 未知设备不会被自动创建，事件以空关联保存。
-- “创建、升级或恢复”由 `EventProcessingService.updateAlert` 决定。
 
 Speaker 1: Trap 的 linkDown 和 linkUp 怎么关联恢复？
 
@@ -233,76 +304,17 @@ Speaker 1: SNMP GET 为什么抽了 `SnmpQueryClient` 接口？
 
 Speaker 2: 当前 `SnmpV2cQueryClient` 用 SNMP4J 实现 v2c，接口让 Controller 不依赖具体版本，将来可加入 v3 authPriv 或测试替身。
 
-## 第三部分：外部系统集成时序
-
 Speaker 1: SNMP GET 从 API 到设备再回数据库的往返怎样发生？
 
 Speaker 2: 下面只画当前 v2c 实现；SNMPv3 是改进方向，不会混进当前时序。
-
-```mermaid
-sequenceDiagram
-    actor Caller as 脚本或 Lambda
-    participant Api as IngestApiController
-    participant Client as SnmpV2cQueryClient
-    participant Agent as SNMP Agent
-    participant Process as EventProcessingService
-    participant Db as PostgreSQL
-
-    Caller->>Api: POST /api/v1/monitoring/snmp-get
-    Api->>Client: get(SnmpGetRequest)
-    Client->>Agent: SNMPv2c GET / UDP
-    alt Agent 成功响应
-        Agent-->>Client: OID value
-        Client-->>Api: SnmpGetResult success
-    else 超时或协议错误
-        Client-->>Api: SnmpGetResult errorType
-    end
-    Api->>Process: process(IngestRequest)
-    Process->>Db: 保存 Event 与可选 Alert
-    Api-->>Caller: HTTP 200 + SnmpGetResult
-```
-
-### 图表说明
-
-- API 路径和方法来自 `IngestApiController.snmpGet`。
-- `SnmpV2cQueryClient` 通过 SNMP4J 对目标 Agent 发送 UDP GET。
-- 成功与失败都会转成 `IngestRequest`，从而留下事件事实。
-- community 只用于请求，不在图中传给数据库，也不应写入日志。
-- 真实 AWS Lambda 部署与目标网络可达性尚未由本轮运行验证。
 
 Speaker 1: 有没有异步消息中间件保证数据不丢？
 
 Speaker 2: 没有发现。UDP 本身也可能丢包，当前数据库事务只能保证进入应用后的写入一致性。生产要从协议、缓冲、重试和 outbox 分别设计可靠性。
 
-## 第四部分：当前消息生产与消费边界
-
 Speaker 1: 没有 broker，还能谈“生产与消费”吗？
 
 Speaker 2: 可以，但要说准确：接收器生产内存中的 `IngestRequest`，Service 在同一进程同步消费，不是 Kafka 语义。
-
-```mermaid
-flowchart LR
-    SocketNode["UDP/TCP Socket"]
-    ReceiverNode["SyslogReceiver 或 SnmpTrapReceiver"]
-    RequestNode["内存对象 IngestRequest"]
-    ConsumerNode["EventProcessingService.process"]
-    TransactionNode["数据库事务"]
-    BrokerNode["Kafka / RabbitMQ：仓库中暂未发现实现"]
-
-    SocketNode -->|"网络消息"| ReceiverNode
-    ReceiverNode -->|"构造对象"| RequestNode
-    RequestNode -->|"同步方法调用"| ConsumerNode
-    ConsumerNode --> TransactionNode
-    ReceiverNode -.->|"当前没有此路径"| BrokerNode
-```
-
-### 图表说明
-
-- “生产者”是 Receiver，“消费者”是 `EventProcessingService`，对象不离开 JVM。
-- 实线对应当前代码；指向 broker 的虚线明确标为不存在路径。
-- 同步调用简化一致性，但接收线程会受数据库和通知耗时影响。
-- UDP 在进入应用前不提供传输确认，数据库事务无法弥补网络层丢包。
-- 若未来引入 broker，需要重新定义顺序、重复、重试和死信语义。
 
 Speaker 1: PostgreSQL 和 Oracle 能完全共用迁移吗？
 
@@ -316,23 +328,13 @@ Speaker 1: 数据层目前最大的生产风险是什么？
 
 Speaker 2: 同步写入链加上单库、单表事件增长。没有压测和保留策略证据时，最先应量化事件写入率、索引膨胀、归档需求和通知对事务时长的影响。
 
-## 本章涉及的关键文件
-
-| 文件 | 作用 | 在图中的节点 |
-|---|---|---|
-| `app/bms-app/src/main/resources/db/migration/V1__create_bms_schema.sql` | 11 张表与索引 | ER 图所有表 |
-| `app/bms-app/src/main/resources/db/migration/V2__seed_master_data.sql` | 本地主数据 | Device、Target 与 Rule 基线 |
-| `app/bms-app/src/main/java/com/example/bms/event/MonitoringEvent.java` | 事件实体 | `MONITORING_EVENTS` |
-| `app/bms-app/src/main/java/com/example/bms/alert/Alert.java` | 告警聚合实体 | `ALERTS` |
-| `app/bms-app/src/main/java/com/example/bms/reporting/ProtocolStatisticsJdbcRepository.java` | JDBC 统计查询 | 数据库查询边界 |
-
-## 核心知识点回顾
+核心知识点回顾
 
 1. 设备、目标、规则、事件和告警分别表达不同生命周期。
 2. Flyway 控制结构，JPA 验证并操作实体，JDBC处理聚合。
 3. 协议可靠性、事务可靠性和通知可靠性不能混为一谈。
 
-### 启发式思考
+启发式思考
 
 1. 事件保留一年后，哪些索引与分区策略最先需要调整？
 2. Oracle 兼容性应怎样加入 CI 而不依赖生产 ADB？

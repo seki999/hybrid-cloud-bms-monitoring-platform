@@ -46,29 +46,7 @@ flowchart LR
 - 运维 UI 是 Thymeleaf 服务端渲染，仓库中没有独立 SPA 或 Redis。
 - 图中均为当前代码已实现路径；真实 Lambda 云部署状态不由此图证明。
 
-## 对话式讲解
-
-Speaker 1: 这个名字里同时有 hybrid、cloud、BMS、monitoring，像把技术简历压缩成了一个文件名。它到底解决什么问题？
-
-Speaker 2: 从 `EventProcessingService`、协议接收器和页面代码可以确认，它把网络设备的 Syslog、SNMP Trap、SNMP GET 与 TCP 检查统一保存成事件，再形成可操作的告警。名字很长，主线其实很清楚：事实先落库，故障再聚合。
-
-Speaker 1: 这张全景图里，为什么 Event 和 Alert 要画成两张表？
-
-Speaker 2: 因为箭头表达的是两种不同语义：每次观测都进入 `monitoring_events`，只有需要运维处理的聚合状态才进入或更新 `alerts`。这正是系统避免“一条日志等于一个工单”的关键。
-
-Speaker 1: BMS 是楼宇管理系统吗？
-
-Speaker 2: 不能只看缩写猜。这里的设备种子、事件类型和脚本都指向网络监视场景，包括路由器、VPN、交换机和通信服务，所以本仓库中的 BMS 应按网络运维监视平台理解。
-
-Speaker 1: 谁会真的打开这个系统？
-
-Speaker 2: `SecurityConfig` 定义了 ADMIN、OPERATOR、VIEWER。管理员维护设备和规则，操作员确认或关闭告警，只读用户查看仪表盘、事件和状态。
-
 ## 第一部分：参与者与业务结果
-
-Speaker 1: 三类用户、设备和外部检查器站在一起时，谁给谁提供什么？
-
-Speaker 2: 看这张参与者图，重点不是人物头像，而是输入和结果的责任边界。
 
 ```mermaid
 flowchart TB
@@ -100,27 +78,7 @@ flowchart TB
 - 箭头表示当前代码中的交互职责，不代表 ADMIN、OPERATOR、VIEWER 是独立外部系统。
 - 仓库中未发现工单系统集成，因此图中没有虚构工单平台。
 
-Speaker 1: 原来 VIEWER 的箭头只有查询，ADMIN 才有维护箭头。
-
-Speaker 2: Exactly。权限图的价值就在于把“菜单看起来不一样”提升为服务端授权事实。
-
-Speaker 1: 前端是不是又有一套 Node 工程？
-
-Speaker 2: 没有。`templates/` 和 `static/` 证明它是 Spring MVC 加 Thymeleaf 的服务端渲染应用。浏览器拿到的是后端已经拼好的 HTML，少量 `app.js` 只做趋势图和渐进增强。
-
-Speaker 1: 那 `package.json` 是不是在偷偷构建 React？
-
-Speaker 2: 不是。仓库中的主构建图由根 `pom.xml` 管理，业务 UI 没有独立 SPA 模块。判断技术栈要看入口和依赖，而不是看见一个文件名就开始脑补。
-
-Speaker 1: 六个 Maven 模块都是什么？
-
-Speaker 2: `app/bms-app` 是主应用；两个 simulator 发送 Syslog 和 Trap；两个 Lambda 模块演示 SNMP GET 与 TCP Ping；`apps/alert-function` 演示 OCI Function 风格的通知处理。
-
 ## 第二部分：模块和组件总览
-
-Speaker 1: 六个模块与主应用的关系能展开吗？
-
-Speaker 2: 可以。实线是仓库中明确存在的数据或调用边界，虚线只表示可选云端部署位置，不代表已经部署。
 
 ```mermaid
 flowchart LR
@@ -153,6 +111,90 @@ flowchart LR
 - 主应用到 `alert-function` 使用虚线，因为仓库没有证明当前运行时会直接调用该函数。
 - 云运行位置使用虚线并明确标记“尚未确认部署”。
 - `alert-function` 有可测试核心逻辑，但仓库不能证明 OCI Function 已发布或已由主应用实时调用。
+
+## 第三部分：项目学习路线
+
+```mermaid
+flowchart LR
+    BuildNode["1. pom.xml 与六模块"]
+    EntryNode["2. BmsApplication"]
+    ApiNode["3. IngestApiController"]
+    DomainNode["4. EventProcessingService"]
+    SchemaNode["5. Flyway V1 与 V2"]
+    SecurityNode["6. SecurityConfig"]
+    RuntimeNode["7. Compose 与 Kubernetes"]
+    VerifyNode["8. 测试与 CI"]
+
+    BuildNode --> EntryNode
+    EntryNode --> ApiNode
+    ApiNode --> DomainNode
+    DomainNode --> SchemaNode
+    SchemaNode --> SecurityNode
+    SecurityNode --> RuntimeNode
+    RuntimeNode --> VerifyNode
+```
+
+### 图表说明
+
+- 每个节点都是当前仓库中的真实文件或目录，不是通用课程模板。
+- 箭头表示推荐学习顺序，不表示代码运行时调用。
+- `EventProcessingService` 放在迁移脚本之前阅读，是为了先理解数据为何存在。
+- Compose 与 Kubernetes 放在业务链之后，避免把部署资源误当成业务功能。
+- 这张图属于学习建议；运行时关系应以前面的全景图和后续请求时序图为准。
+
+## 本章涉及的关键文件
+
+| 文件 | 作用 | 在图中的节点 |
+|---|---|---|
+| `README.md` | 项目入口与验证边界 | 学习路线与部署边界 |
+| `pom.xml` | 六模块构建图和 Java 版本 | 六个 Maven 模块 |
+| `app/bms-app/src/main/java/com/example/bms/BmsApplication.java` | 主应用入口 | Spring Boot 主应用 |
+| `docker-compose.yml` | 本地服务编排 | PostgreSQL、MailHog 与主应用 |
+| `app/bms-app/src/main/resources/application.yml` | 默认端口、profile 和组件开关 | 协议入口与组件角色 |
+
+---
+
+对话复制区
+
+Speaker 1: 这个名字里同时有 hybrid、cloud、BMS、monitoring，像把技术简历压缩成了一个文件名。它到底解决什么问题？
+
+Speaker 2: 从 `EventProcessingService`、协议接收器和页面代码可以确认，它把网络设备的 Syslog、SNMP Trap、SNMP GET 与 TCP 检查统一保存成事件，再形成可操作的告警。名字很长，主线其实很清楚：事实先落库，故障再聚合。
+
+Speaker 1: 这张全景图里，为什么 Event 和 Alert 要画成两张表？
+
+Speaker 2: 因为箭头表达的是两种不同语义：每次观测都进入 `monitoring_events`，只有需要运维处理的聚合状态才进入或更新 `alerts`。这正是系统避免“一条日志等于一个工单”的关键。
+
+Speaker 1: BMS 是楼宇管理系统吗？
+
+Speaker 2: 不能只看缩写猜。这里的设备种子、事件类型和脚本都指向网络监视场景，包括路由器、VPN、交换机和通信服务，所以本仓库中的 BMS 应按网络运维监视平台理解。
+
+Speaker 1: 谁会真的打开这个系统？
+
+Speaker 2: `SecurityConfig` 定义了 ADMIN、OPERATOR、VIEWER。管理员维护设备和规则，操作员确认或关闭告警，只读用户查看仪表盘、事件和状态。
+
+Speaker 1: 三类用户、设备和外部检查器站在一起时，谁给谁提供什么？
+
+Speaker 2: 看这张参与者图，重点不是人物头像，而是输入和结果的责任边界。
+
+Speaker 1: 原来 VIEWER 的箭头只有查询，ADMIN 才有维护箭头。
+
+Speaker 2: Exactly。权限图的价值就在于把“菜单看起来不一样”提升为服务端授权事实。
+
+Speaker 1: 前端是不是又有一套 Node 工程？
+
+Speaker 2: 没有。`templates/` 和 `static/` 证明它是 Spring MVC 加 Thymeleaf 的服务端渲染应用。浏览器拿到的是后端已经拼好的 HTML，少量 `app.js` 只做趋势图和渐进增强。
+
+Speaker 1: 那 `package.json` 是不是在偷偷构建 React？
+
+Speaker 2: 不是。仓库中的主构建图由根 `pom.xml` 管理，业务 UI 没有独立 SPA 模块。判断技术栈要看入口和依赖，而不是看见一个文件名就开始脑补。
+
+Speaker 1: 六个 Maven 模块都是什么？
+
+Speaker 2: `app/bms-app` 是主应用；两个 simulator 发送 Syslog 和 Trap；两个 Lambda 模块演示 SNMP GET 与 TCP Ping；`apps/alert-function` 演示 OCI Function 风格的通知处理。
+
+Speaker 1: 六个模块与主应用的关系能展开吗？
+
+Speaker 2: 可以。实线是仓库中明确存在的数据或调用边界，虚线只表示可选云端部署位置，不代表已经部署。
 
 Speaker 1: “混合云”是当前已经跨 AWS 和 OCI 跑起来了吗？
 
@@ -190,39 +232,9 @@ Speaker 1: 这个仓库最值得先读哪几个文件？
 
 Speaker 2: 先看根 `pom.xml` 和 `BmsApplication.java`，再看 `IngestApiController`、`EventProcessingService`、`V1__create_bms_schema.sql`、`SecurityConfig`，最后看 Compose 与 Kubernetes。这样从入口走到部署，不会迷路。
 
-## 第三部分：项目学习路线
-
 Speaker 1: 能把这个阅读顺序变成一条不会迷路的路线吗？
 
 Speaker 2: 可以，按“构建图、入口、主链、数据、安全、部署、验证”推进。
-
-```mermaid
-flowchart LR
-    BuildNode["1. pom.xml 与六模块"]
-    EntryNode["2. BmsApplication"]
-    ApiNode["3. IngestApiController"]
-    DomainNode["4. EventProcessingService"]
-    SchemaNode["5. Flyway V1 与 V2"]
-    SecurityNode["6. SecurityConfig"]
-    RuntimeNode["7. Compose 与 Kubernetes"]
-    VerifyNode["8. 测试与 CI"]
-
-    BuildNode --> EntryNode
-    EntryNode --> ApiNode
-    ApiNode --> DomainNode
-    DomainNode --> SchemaNode
-    SchemaNode --> SecurityNode
-    SecurityNode --> RuntimeNode
-    RuntimeNode --> VerifyNode
-```
-
-### 图表说明
-
-- 每个节点都是当前仓库中的真实文件或目录，不是通用课程模板。
-- 箭头表示推荐学习顺序，不表示代码运行时调用。
-- `EventProcessingService` 放在迁移脚本之前阅读，是为了先理解数据为何存在。
-- Compose 与 Kubernetes 放在业务链之后，避免把部署资源误当成业务功能。
-- 这张图属于学习建议；运行时关系应以前面的全景图和后续请求时序图为准。
 
 Speaker 1: 页面上有日文，文档现在是中文，会不会冲突？
 
@@ -244,23 +256,13 @@ Speaker 1: 如果我只记住一句话呢？
 
 Speaker 2: 记住：它是一个可本地运行的网络监视模块化单体，用统一事件模型连接协议接收、规则、告警、通知和运维页面，并为容器与混合云迁移保留了明确边界。
 
-## 本章涉及的关键文件
-
-| 文件 | 作用 | 在图中的节点 |
-|---|---|---|
-| `README.md` | 项目入口与验证边界 | 学习路线与部署边界 |
-| `pom.xml` | 六模块构建图和 Java 版本 | 六个 Maven 模块 |
-| `app/bms-app/src/main/java/com/example/bms/BmsApplication.java` | 主应用入口 | Spring Boot 主应用 |
-| `docker-compose.yml` | 本地服务编排 | PostgreSQL、MailHog 与主应用 |
-| `app/bms-app/src/main/resources/application.yml` | 默认端口、profile 和组件开关 | 协议入口与组件角色 |
-
-## 核心知识点回顾
+核心知识点回顾
 
 1. 当前实现是服务端渲染的模块化单体，不是独立前后端或微服务集群。
 2. Event 表示观测事实，Alert 表示聚合故障。
 3. 云模块和 Kubernetes 清单是可验证的配置，但不是已上线证明。
 
-### 启发式思考
+启发式思考
 
 1. 如果只把协议接收器独立扩容，数据库事务会成为怎样的新瓶颈？
 2. 哪些本地默认值必须在共享环境中强制移除？
