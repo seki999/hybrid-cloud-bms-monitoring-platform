@@ -1,6 +1,6 @@
 # hybrid-cloud-bms-monitoring-platform
 
-面向大型通信运营商 BMS 网络监视系统重构的 Java 21 / Spring Boot 3 混合云学习项目。仓库包含可运行的服务端渲染应用、Syslog/SNMP/TCP 监控链路、PostgreSQL 数据、AWS Lambda 与 OCI Functions Java 样例、Docker Compose、Kubernetes/kind、OpenTofu 模块、测试和真实浏览器截图。
+面向大型通信运营商 BMS 网络监视系统重构的 Java 25 / Spring Boot 3 混合云学习项目。仓库包含可运行的服务端渲染应用、Syslog/SNMP/TCP 监控链路、PostgreSQL 数据、AWS Lambda 与 OCI Functions Java 样例、Docker Compose、Kubernetes/kind、OpenTofu 模块、测试和真实浏览器截图。
 
 > 安全与费用边界：本地路径不要求 AWS/OCI 账号。所有云资源默认关闭；仓库没有执行真实云 `plan/apply/destroy`，也不包含 OCID、云密钥、ADB Wallet、真实密码或生产 SNMP community。
 
@@ -8,7 +8,7 @@
 
 该平台把网络设备的被动事件（Syslog、SNMP Trap）和主动检查（SNMP GET、TCP Ping）归一为 `MonitoringEvent`，再依据设备主数据和规则生成/更新 `Alert`。日文运维 UI 由 Spring MVC + Thymeleaf 在服务器端渲染，不存在 React/Vue/Angular 或独立前端应用。
 
-核心技术为 Java 21、Spring Boot 3.5.14、Maven Wrapper、Spring MVC/Security/Validation/Data JPA/JDBC/Scheduler/Actuator、Thymeleaf、SNMP4J、Flyway、PostgreSQL、Oracle JDBC、JUnit 5、Mockito、MockMvc 和 Testcontainers。
+核心技术为 Java 25、Spring Boot 3.5.14、Maven Wrapper、Spring MVC/Security/Validation/Data JPA/JDBC/Scheduler/Actuator、Thymeleaf、SNMP4J、Flyway、PostgreSQL、Oracle JDBC、JUnit 5、Mockito、MockMvc 和 Testcontainers。
 
 ## 2. 项目背景
 

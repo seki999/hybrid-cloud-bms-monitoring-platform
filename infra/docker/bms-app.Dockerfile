@@ -1,5 +1,5 @@
 # 构建阶段固定 Maven/JDK 版本，使开发机与 CI 产生相同字节码。
-FROM maven:3.9.10-eclipse-temurin-21 AS build
+FROM maven:3.9.16-eclipse-temurin-25 AS build
 WORKDIR /workspace
 COPY pom.xml ./
 COPY app/bms-app/pom.xml app/bms-app/pom.xml
@@ -14,7 +14,7 @@ RUN --mount=type=cache,target=/root/.m2 \
     mvn -B -pl app/bms-app -am -DskipTests package
 
 # 运行阶段不包含 Maven，安装 curl 只用于容器健康检查。
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 RUN apk add --no-cache curl \
     && addgroup -S bms \
     && adduser -S -G bms -u 10001 bms
