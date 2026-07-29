@@ -1,5 +1,5 @@
 # 构建阶段固定 Maven/JDK 版本，使开发机与 CI 产生相同字节码。
-FROM maven:3.9.10-eclipse-temurin-25 AS build
+FROM maven:3.9.16-eclipse-temurin-25 AS build
 WORKDIR /workspace
 COPY pom.xml ./
 COPY app/bms-app/pom.xml app/bms-app/pom.xml
